@@ -12,13 +12,10 @@ import {
   Phone, 
   Mail, 
   X, 
-  Shield, 
-  Lock,
-  UserCheck
+  Shield
 } from 'lucide-react';
 
 export const LoginView: React.FC = () => {
-  const { login } = useAuth();
   const [identifier, setIdentifier] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -26,7 +23,6 @@ export const LoginView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [showSupportModal, setShowSupportModal] = useState<boolean>(false);
-  const [showAccountsDirectoryModal, setShowAccountsDirectoryModal] = useState<boolean>(false);
   const [supportModalTitle, setSupportModalTitle] = useState<string>('الدعم الفني وتغيير كلمة السر');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,22 +30,17 @@ export const LoginView: React.FC = () => {
     setError(null);
     setLoading(true);
 
-    try {
-      const res = await login(identifier, password);
-      if (!res.success) {
-        setError(res.error || 'فشل تسجيل الدخول. يرجى التأكد من صحة البيانات المدخلة.');
-      }
-    } catch (err: any) {
-      setError(err.message || 'حدث خطأ في الاتصال بالخادم الحكومي.');
-    } finally {
+    // المنظومة تحت التطوير - منع الدخول حالياً وإظهار رسالة التوجيه للدعم الفني
+    setTimeout(() => {
       setLoading(false);
-    }
+      setError('المنظومة تحت التطوير والتحديث حالياً. رجاء التواصل مع فريق الدعم الفني بقطاع الرعاية الصحية وتنمية الأسرة.');
+    }, 400);
   };
 
   const handleSelectQuickAccount = (accIdentifier: string) => {
     setIdentifier(accIdentifier);
     setPassword('Masar@2026');
-    setError(null);
+    setError('المنظومة تحت التطوير والتحديث حالياً. رجاء التواصل مع فريق الدعم الفني بقطاع الرعاية الصحية وتنمية الأسرة.');
   };
 
   const handleOpenPasswordResetModal = () => {
@@ -65,17 +56,6 @@ export const LoginView: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#edf1f5] font-arabic text-slate-800 flex flex-col justify-center items-center p-4 sm:p-6 md:p-8 relative">
       
-      {/* زر دليل الحسابات العائم أعلى الشاشة للتجربة السريعة */}
-      <div className="fixed top-3.5 left-4 sm:left-6 z-40">
-        <button
-          type="button"
-          onClick={() => setShowAccountsDirectoryModal(true)}
-          className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-white text-slate-800 border border-slate-300 hover:border-[#0d7a70] hover:text-[#0d7a70] shadow-sm transition flex items-center gap-1.5 cursor-pointer hover:shadow-md"
-        >
-          <span>📋 دليل الحسابات وكلمات السر (مؤقتاً)</span>
-        </button>
-      </div>
-
       {/* البطاقة الرئيسية العائمة المطابقة تماماً لنموذج التصميم المطلوب */}
       <div className="max-w-[960px] w-full bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden flex flex-col md:flex-row transition-all duration-300">
         
@@ -144,22 +124,11 @@ export const LoginView: React.FC = () => {
         <div className="w-full md:w-[52%] bg-white p-7 sm:p-9 md:p-10 flex flex-col justify-between">
           
           <div>
-            {/* الشريط العلوي في الفورم */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-[#e6f4f1] text-[#0d7a70] border border-[#b2e2d9]">
-                  بوابة الدخول الموحدة
-                </span>
-                {/* زر دليل الحسابات المؤقت */}
-                <button
-                  type="button"
-                  onClick={() => setShowAccountsDirectoryModal(true)}
-                  className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 transition flex items-center gap-1 cursor-pointer shadow-2xs"
-                  title="عرض دليل الحسابات الرسمية وكلمات المرور"
-                >
-                  <span>📋 دليل الحسابات (مؤقتاً)</span>
-                </button>
-              </div>
+            {/* الشريط العلوي في الفورم مطابق للصورة بدون أي أزرار مكررة */}
+            <div className="flex items-center justify-between">
+              <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-[#e6f4f1] text-[#0d7a70] border border-[#b2e2d9]">
+                بوابة الدخول الموحدة
+              </span>
               <span className="text-xs text-slate-400 font-medium">
                 نظام رسمي مؤمن
               </span>
@@ -175,11 +144,14 @@ export const LoginView: React.FC = () => {
               </p>
             </div>
 
-            {/* رسالة الخطأ إن وجدت */}
+            {/* تنبيه حالة التطوير والدعم الفني */}
             {error && (
-              <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-center gap-2 text-xs text-rose-800 animate-in fade-in">
-                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                <span>{error}</span>
+              <div className="mb-4 p-3.5 rounded-2xl bg-amber-50 border border-amber-300 flex items-start gap-2.5 text-xs text-amber-900 animate-in fade-in leading-relaxed shadow-xs">
+                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-amber-950">تنبيه النظام:</div>
+                  <div className="text-[12px] text-amber-900 mt-0.5">{error}</div>
+                </div>
               </div>
             )}
 
@@ -298,7 +270,7 @@ export const LoginView: React.FC = () => {
       </div>
 
       {/* ============================================================ */}
-      {/* 3. شريط الحسابات التجريبية السريعة (لتسهيل التجربة بدون كتابة) */}
+      {/* 3. شريط الحسابات التجريبية السريعة (مكتوبة تحت في الأسفل كما هي) */}
       {/* ============================================================ */}
       <div className="mt-5 max-w-[960px] w-full px-2 text-xs flex flex-wrap items-center justify-center gap-2">
         <span className="text-slate-500 font-bold ml-1">
@@ -428,95 +400,6 @@ export const LoginView: React.FC = () => {
                 className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
               >
                 إغلاق النافذة
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* ============================================================ */}
-      {/* 5. نافذة منبثقة: دليل الحسابات الرسمية وكلمات السر (مؤقتاً للتجربة) */}
-      {/* ============================================================ */}
-      {showAccountsDirectoryModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 max-w-2xl w-full shadow-2xl relative space-y-4 max-h-[90vh] flex flex-col animate-in zoom-in-95">
-            
-            {/* الترويسة */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-800 flex items-center justify-center border border-amber-200 font-bold text-lg">
-                  📋
-                </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-black text-slate-900">
-                    دليل الحسابات الرسمية للتجربة السريعة (مؤقتاً)
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    كلمة المرور الموحدة لجميع هذه الحسابات هي: <span className="font-mono font-bold text-[#0d7a70]">Masar@2026</span>
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setShowAccountsDirectoryModal(false)}
-                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* قائمة الحسابات */}
-            <div className="overflow-y-auto flex-1 space-y-2.5 pr-1 text-xs">
-              {INITIAL_OFFICIAL_ACCOUNTS.map((acc) => (
-                <div 
-                  key={acc.id}
-                  className="p-3.5 rounded-2xl border border-slate-200 hover:border-[#0d7a70] hover:bg-[#f4faf9] transition flex flex-wrap items-center justify-between gap-3 bg-slate-50/60"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-black text-slate-900 text-xs">{acc.role_title_ar}</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-mono font-bold">
-                        {acc.role}
-                      </span>
-                    </div>
-                    <div className="text-slate-600 font-medium">
-                      الموظف المكلف: {acc.full_name} {acc.governorate_name_ar ? `• (${acc.governorate_name_ar})` : ''}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 text-slate-500 font-mono text-[11px]">
-                      <span>📧 {acc.email}</span>
-                      <span>🆔 {acc.national_id}</span>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIdentifier(acc.email || acc.national_id || '');
-                      setPassword('Masar@2026');
-                      setError(null);
-                      setShowAccountsDirectoryModal(false);
-                    }}
-                    className="px-3.5 py-2 rounded-xl bg-[#0d7a70] hover:bg-[#0b655d] text-white font-bold text-xs transition shadow-2xs cursor-pointer flex items-center gap-1.5"
-                  >
-                    <span>اختيار الحساب فوراً</span>
-                    <span>←</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {/* التذييل */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 shrink-0">
-              <span className="text-[11px] text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
-                * تم وضع هذا الزر والدليل مؤقتاً لتسهيل فحص الصلاحيات وستتم إزالته عند التدشين النهائي.
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowAccountsDirectoryModal(false)}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition cursor-pointer"
-              >
-                إغلاق
               </button>
             </div>
 
