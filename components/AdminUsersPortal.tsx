@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { UserProfile, AuditLog, DailySubmission } from '@/lib/types';
-import { INITIAL_OFFICIAL_ACCOUNTS } from '@/lib/auth-context';
+import { createBrowserClient } from '@/lib/supabase/client';
 import { OrganizationHierarchyView } from './OrganizationHierarchyView';
 import { 
   ShieldCheck, 
@@ -31,11 +31,38 @@ export const AdminUsersPortal: React.FC<AdminUsersPortalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'users' | 'hierarchy' | 'audit'>('users');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [users, setUsers] = useState<UserProfile[]>([]);
 
-  const filteredUsers = INITIAL_OFFICIAL_ACCOUNTS.filter(u => 
-    u.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadUsers() {
+      const supabase = createBrowserClient();
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, national_id, role, role_title_ar, active, governorate_id, governorate_name_ar, district_id, district_name_ar')
+        .order('full_name', { ascending: true });
+
+      if (!mounted) return;
+      if (error) {
+        console.error('Failed to load user profiles', error);
+        setUsers([]);
+        return;
+      }
+
+      setUsers((data ?? []) as UserProfile[]);
+    }
+
+    loadUsers();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const filteredUsers = users.filter(u => 
+    (u.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (u.national_id && u.national_id.includes(searchTerm)) ||
-    u.role_title_ar.toLowerCase().includes(searchTerm.toLowerCase())
+    (u.role_title_ar || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
