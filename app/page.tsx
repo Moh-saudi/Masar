@@ -131,65 +131,38 @@ export default function MasarPlatformPage() {
         canRequestOverride={false}
       />
 
-      {/* 3. شريط التنقل الخاص بمسؤول النظام العام (Super Admin فقط) */}
+      {/* 3. شريط التبديل بين مستويات المنظومة لمسؤول النظام العام */}
       {user.role === 'super_admin' && (
-        <div className="bg-white border-b border-slate-200">
-          <div className="gov-shell mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-xs text-purple-700 font-bold">
-              <ShieldCheck className="w-4 h-4" />
-              <span>صلاحيات إدارة النظام الشاملة:</span>
+        <div className="bg-white/90 border-b border-[#e2e8ef]">
+          <div className="gov-shell mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+            <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold">
+              <ShieldCheck className="w-4 h-4 text-[#087f78]" />
+              <span>وضع مسؤول النظام العام</span>
+              <span className="text-slate-300">•</span>
+              <span className="font-medium">التنقل بين مستويات التشغيل للمتابعة والإدارة</span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 rounded-xl text-xs font-bold">
-              <button
-                onClick={() => setAdminActiveTab('admin')}
-                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
-                  adminActiveTab === 'admin' ? 'bg-white text-purple-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
-                <span>إدارة المستخدمين والرقابة</span>
-              </button>
-
-              <button
-                onClick={() => setAdminActiveTab('ministry')}
-                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
-                  adminActiveTab === 'ministry' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <LayoutDashboard className="w-3.5 h-3.5 text-sky-600" />
-                <span>بوابة الوزارة القومية</span>
-              </button>
-
-              <button
-                onClick={() => setAdminActiveTab('directorate')}
-                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
-                  adminActiveTab === 'directorate' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Building2 className="w-3.5 h-3.5 text-sky-600" />
-                <span>بوابة المديرية والمحافظة</span>
-              </button>
-
-              <button
-                onClick={() => setAdminActiveTab('district')}
-                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
-                  adminActiveTab === 'district' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Building className="w-3.5 h-3.5 text-sky-600" />
-                <span>بوابة الإدارة الصحية</span>
-              </button>
-
-              <button
-                onClick={() => setAdminActiveTab('reports')}
-                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
-                  adminActiveTab === 'reports' ? 'bg-white text-emerald-800 shadow-xs' : 'text-slate-600 hover:text-emerald-700'
-                }`}
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-                <span>مركز التقارير وExcel</span>
-              </button>
+            <div className="flex flex-wrap items-center gap-1 p-1 bg-[#f2f5f8] border border-[#e1e7ed] rounded-xl text-[10px] font-extrabold">
+              {[
+                { id: 'admin', label: 'إدارة النظام', icon: <ShieldCheck className="w-3.5 h-3.5" /> },
+                { id: 'ministry', label: 'ديوان الوزارة', icon: <LayoutDashboard className="w-3.5 h-3.5" /> },
+                { id: 'directorate', label: 'المديرية', icon: <Building2 className="w-3.5 h-3.5" /> },
+                { id: 'district', label: 'الإدارة الصحية', icon: <Building className="w-3.5 h-3.5" /> },
+                { id: 'reports', label: 'التقارير', icon: <FileSpreadsheet className="w-3.5 h-3.5" /> },
+              ].map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => setAdminActiveTab(item.id as typeof adminActiveTab)}
+                  className={`h-8 px-3 rounded-lg transition flex items-center gap-1.5 ${
+                    adminActiveTab === item.id
+                      ? 'bg-white text-[#087f78] shadow-sm ring-1 ring-[#dce6eb]'
+                      : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
+                  }`}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </button>
+              ))}
             </div>
           </div>
         </div>
