@@ -21,9 +21,8 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createBrowserClient();
-
   useEffect(() => {
+    const supabase = createBrowserClient();
     let mounted = true;
 
     async function loadSession() {
@@ -60,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function login(identifier: string, password: string) {
+    const supabase = createBrowserClient();
     const email = identifier.includes('@')
       ? identifier
       : `${identifier}@masar.gov.eg`;
@@ -85,6 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function logout() {
+    const supabase = createBrowserClient();
     await supabase.auth.signOut();
     setUser(null);
   }
