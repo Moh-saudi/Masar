@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { DailySubmission, UserProfile, TimeLockState } from '@/lib/types';
-import { MasarService } from '@/lib/masar-service';
+import { approveNationalReport } from '@/lib/services/submissions-client';
+import { OperationFeedbackDialog } from './OperationFeedbackDialog';
 import { 
   Users, 
   HeartHandshake, 
@@ -70,6 +71,7 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
     user.role === 'central_admin' ? 'tactical' : 'macro';
 
   const [suiteTab, setSuiteTab] = useState<'macro' | 'tactical' | 'deep_dive'>(defaultTab);
+  const [operationFeedback, setOperationFeedback] = useState<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
 
   // عداد تنازلي لموعد إغلاق الاعتماد القومي النهائي (الساعة 10:00 مساءً)
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; isPassed: boolean }>({
@@ -171,14 +173,26 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
     { id: 'doc-5', name: 'د. نهى إبراهيم حلمي', nationalId: '29012050103456', gov: 'أسيوط', district: 'أسيوط شرق', procedures: 108, qualityScore: 98 },
   ];
 
-  const handleNationalApproval = () => {
+  const handleNationalApproval = async () => {
     const confirmed = window.confirm(
       'تأكيد الاعتماد القومي النهائي لتقرير اليوم لديوان معالي الوزير؟'
     );
-    if (confirmed) {
-      MasarService.approveNationalMinistryReport(user);
+    if (!confirmed) return;
+
+    try {
+      await approveNationalReport(user);
       onDataChanged();
-      alert('تم الاعتماد القومي النهائي بنجاح وإقفال اليوم الإحصائي للجمهورية.');
+      setOperationFeedback({
+        type: 'success',
+        title: 'تم الاعتماد القومي بنجاح',
+        message: 'تم اعتماد التقرير القومي النهائي وإقفال اليوم الإحصائي للجمهورية بنجاح.',
+      });
+    } catch {
+      setOperationFeedback({
+        type: 'error',
+        title: 'تعذر الاعتماد القومي',
+        message: 'لم نتمكن من اعتماد التقرير القومي في الوقت الحالي. أعد المحاولة، وإذا استمرت المشكلة تواصل مع الدعم الفني.',
+      });
     }
   };
 
@@ -543,6 +557,15 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
           </div>
         </div>
       )}
+
+      <OperationFeedbackDialog
+        open={Boolean(operationFeedback)}
+        type={operationFeedback?.type || 'error'}
+        title={operationFeedback?.title || 'تعذر إتمام العملية'}
+        message={operationFeedback?.message || 'حدث خطأ غير متوقع.'}
+        onClose={() => setOperationFeedback(null)}
+        onRetry={() => setOperationFeedback(null)}
+      />
 
     </div>
   );
