@@ -126,10 +126,10 @@ export const DirectoratePpfpReportView: React.FC<DirectoratePpfpReportViewProps>
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in">
+    <div className="space-y-4">
       
       {/* 1. ترويسة تقرير الـ PPFP */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <div className="gov-surface p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <Baby className="w-5 h-5 text-indigo-600" />
@@ -165,7 +165,7 @@ export const DirectoratePpfpReportView: React.FC<DirectoratePpfpReportViewProps>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         
         {/* أثناء القيصريات */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+        <div className="gov-surface p-5 shadow-xs">
           <div className="flex items-center justify-between text-slate-500 mb-2">
             <span className="text-xs font-bold text-slate-700">تركيب اللوالب أثناء القيصرية (PPIUD-CS)</span>
             <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold border border-indigo-200">
@@ -186,7 +186,7 @@ export const DirectoratePpfpReportView: React.FC<DirectoratePpfpReportViewProps>
         </div>
 
         {/* بعد الولادات الطبيعية */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+        <div className="gov-surface p-5 shadow-xs">
           <div className="flex items-center justify-between text-slate-500 mb-2">
             <span className="text-xs font-bold text-slate-700">تركيب اللوالب بعد الولادة الطبيعية (PPIUD-VD)</span>
             <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
@@ -207,10 +207,10 @@ export const DirectoratePpfpReportView: React.FC<DirectoratePpfpReportViewProps>
         </div>
 
         {/* إجمالي الحماية بعد الولادة PPFP */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+        <div className="gov-surface p-5 shadow-xs">
           <div className="flex items-center justify-between text-slate-500 mb-2">
             <span className="text-xs font-bold text-slate-700">الإجمالي العام للحماية (PPFP Total)</span>
-            <ShieldCheck className="w-4 h-4 text-sky-600" />
+            <ShieldCheck className="w-4 h-4 text-[#087f78]" />
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-black font-mono text-slate-900">
@@ -220,7 +220,7 @@ export const DirectoratePpfpReportView: React.FC<DirectoratePpfpReportViewProps>
               / من أصل {totalAllDeliveries.toLocaleString('en-US')} ولادة كلية
             </span>
           </div>
-          <span className="text-[11px] text-sky-700 font-bold font-mono mt-3 block">
+          <span className="text-[11px] text-[#087f78] font-bold font-mono mt-3 block">
             المعدل الإجمالي لحماية النفاس: {overallPpfpRate}%
           </span>
         </div>
@@ -228,7 +228,7 @@ export const DirectoratePpfpReportView: React.FC<DirectoratePpfpReportViewProps>
       </div>
 
       {/* 3. جدول مستشفيات الولادة بالمحافظة */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+      <div className="gov-surface p-5 shadow-xs">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-slate-900">
             بيان أداء أقسام التوليد بمستشفيات المحافظة
@@ -277,7 +277,7 @@ export const DirectoratePpfpReportView: React.FC<DirectoratePpfpReportViewProps>
                         {nRate}%
                       </span>
                     </td>
-                    <td className="p-2.5 text-center font-bold font-mono text-sky-800">
+                    <td className="p-2.5 text-center font-bold font-mono text-[#066963]">
                       {h.cSectionIud + h.normalIud}
                     </td>
                   </tr>
