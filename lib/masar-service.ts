@@ -7,6 +7,7 @@ import {
   UserProfile 
 } from './types';
 import { SECTIONS_DEFINITIONS, SAMPLE_GOVERNORATES } from './constants';
+import { getCairoDateString } from './date';
 import { approveNationalReport } from './services/submissions-client';
 
 const STORAGE_KEY_SUBMISSIONS = 'masar_submissions_v4_prod';
@@ -14,8 +15,7 @@ const STORAGE_KEY_AUDIT = 'masar_audit_logs_v4_prod';
 const STORAGE_KEY_SIM_TIME = 'masar_simulated_time_v4_prod';
 
 export function getTodayDateString(): string {
-  const d = new Date();
-  return d.toISOString().split('T')[0];
+  return getCairoDateString();
 }
 
 // دالة صريحة لضمان كتابة التوقيت دائماً بالأرقام الإنجليزية (English Digits)
