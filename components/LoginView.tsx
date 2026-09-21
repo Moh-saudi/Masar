@@ -3,28 +3,27 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
-import { 
-  ShieldCheck, 
-  Eye, 
-  EyeOff, 
-  AlertCircle, 
-  Headphones, 
-  Phone, 
-  Mail, 
-  X, 
-  Shield
+import {
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Headphones,
+  X,
+  LockKeyhole,
+  UserRound,
+  Landmark
 } from 'lucide-react';
 
 export const LoginView: React.FC = () => {
   const { login } = useAuth();
-  const [identifier, setIdentifier] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [rememberMe, setRememberMe] = useState<boolean>(true); // مفعل افتراضياً
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [showSupportModal, setShowSupportModal] = useState<boolean>(false);
-  const [supportModalTitle, setSupportModalTitle] = useState<string>('الدعم الفني وتغيير كلمة السر');
+  const [loading, setLoading] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,376 +42,213 @@ export const LoginView: React.FC = () => {
     }
   };
 
-  const handleSelectQuickAccount = (accIdentifier: string) => {
-    setIdentifier(accIdentifier);
-    setPassword('');
-    setError(null);
-  };
-
-  const handleOpenPasswordResetModal = () => {
-    setSupportModalTitle('طلب تغيير / إعادة تعيين كلمة السر');
-    setShowSupportModal(true);
-  };
-
-  const handleOpenGeneralSupportModal = () => {
-    setSupportModalTitle('الدعم الفني المركزي لمنظومة «مَسَار»');
-    setShowSupportModal(true);
-  };
-
   return (
-    <div className="min-h-screen bg-[#edf1f5] font-arabic text-slate-800 flex flex-col justify-center items-center p-4 sm:p-6 md:p-8 relative">
-      
-      {/* البطاقة الرئيسية العائمة المطابقة تماماً لنموذج التصميم المطلوب */}
-      <div className="max-w-[960px] w-full bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden flex flex-col md:flex-row transition-all duration-300">
-        
-        {/* ============================================================ */}
-        {/* 1. القسم الأيمن (اللوحة الخضراء الداكنة الفاخرة ذات الشعار والعناوين) */}
-        {/* ============================================================ */}
-        <div className="w-full md:w-[48%] bg-gradient-to-b from-[#06292b] via-[#052224] to-[#03191a] p-8 md:p-10 flex flex-col justify-between items-center text-center relative overflow-hidden text-white">
-          
-          {/* خلفية جمالية طبية ناعمة */}
-          <div className="absolute inset-0 bg-[radial-gradient(#0f4a4d_1px,transparent_1px)] [background-size:20px_20px] opacity-20 pointer-events-none" />
-          <div className="absolute -bottom-20 -right-20 w-56 h-56 bg-teal-500/10 rounded-full blur-2xl pointer-events-none" />
+    <div className="min-h-screen bg-[#f4f7fa] flex items-center justify-center p-4 sm:p-6 font-arabic">
+      <div className="w-full max-w-[1080px] grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] bg-white border border-[#dfe6ee] rounded-[26px] overflow-hidden shadow-[0_24px_70px_rgba(23,32,51,0.10)]">
 
-          {/* البادج العلوي */}
-          <div className="relative z-10">
-            <span className="inline-block text-[11px] sm:text-xs text-white/90 bg-white/10 px-4 py-1 rounded-full border border-white/15 font-medium shadow-xs">
-              جمهورية مصر العربية • وزارة الصحة والسكان
-            </span>
-          </div>
-
-          {/* الكتلة المركزية: شعار الوزارة والعناوين */}
-          <div className="relative z-10 my-8 md:my-auto space-y-4 max-w-sm">
-            
-            {/* الشعار الوطني بإطار ذهبي أنيق */}
-            <div className="inline-block">
-              <div className="w-20 h-20 sm:w-22 sm:h-22 bg-[#0a3538]/90 border border-amber-400/50 rounded-2xl p-2.5 shadow-xl flex items-center justify-center mx-auto">
+        <section className="relative bg-[#f7fafb] border-b lg:border-b-0 lg:border-l border-[#e3e9ef] p-7 sm:p-9 lg:p-10 flex flex-col justify-between min-h-[290px] lg:min-h-[620px]">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="relative w-12 h-14">
                 <Image
                   src="/logo.png"
                   alt="شعار وزارة الصحة والسكان"
-                  width={80}
-                  height={80}
+                  fill
+                  sizes="48px"
                   className="object-contain"
                   priority
                 />
               </div>
-            </div>
-
-            {/* العنوان الرئيسي */}
-            <div className="space-y-1">
-              <h1 className="text-xl sm:text-2xl font-black text-white leading-relaxed tracking-wide">
-                قطاع الرعاية الصحية وتنمية الأسرة
-              </h1>
-              <div className="text-sm sm:text-base font-bold text-teal-200">
-                منظومة «مَسَار» — الإدارة المركزية لتنظيم الأسرة
+              <div>
+                <p className="text-[10px] font-bold text-slate-500">جمهورية مصر العربية</p>
+                <h1 className="text-sm font-extrabold text-[#172033] mt-0.5">وزارة الصحة والسكان</h1>
               </div>
             </div>
 
-            {/* بادج المنظومة الرقمية */}
-            <div className="pt-2">
-              <span className="inline-block border border-teal-500/40 bg-teal-900/40 text-teal-200 text-[11px] sm:text-xs px-4 py-1.5 rounded-full font-medium shadow-xs">
-                المنظومة الرقمية القومية لخدمات تنظيم الأسرة وصحة المرأة
-              </span>
+            <div className="mt-10 lg:mt-16">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[#eaf9f7] border border-[#ccebe7] text-[#087f78] text-[10px] font-extrabold">
+                <Landmark className="w-3.5 h-3.5" />
+                قطاع الرعاية الصحية وتنمية الأسرة
+              </div>
+
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-[#172033] mt-5 leading-[1.35]">
+                منظومة «مَسَار»
+              </h2>
+
+              <p className="text-sm text-slate-500 leading-7 mt-3 max-w-md">
+                المنظومة الرقمية لتجميع وتحليل بيانات تنمية الأسرة، وربط مستويات الإدارة الصحية والمديرية وديوان عام الوزارة في مسار عمل موحد.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
+            <div className="rounded-xl bg-white border border-[#e2e8ee] p-3.5 flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#eef9f7] text-[#087f78] flex items-center justify-center">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-[11px] font-extrabold text-[#172033]">صلاحيات مؤسسية</div>
+                <p className="text-[9px] text-slate-500 leading-5 mt-0.5">الوصول للبيانات والإجراءات مرتبط بدور المستخدم ونطاقه الإداري.</p>
+              </div>
             </div>
 
+            <div className="rounded-xl bg-white border border-[#e2e8ee] p-3.5 flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#f3f6f8] text-slate-600 flex items-center justify-center">
+                <LockKeyhole className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-[11px] font-extrabold text-[#172033]">جلسات مؤمنة</div>
+                <p className="text-[9px] text-slate-500 leading-5 mt-0.5">تسجيل الدخول وإدارة الجلسات عبر نظام المصادقة المركزي.</p>
+              </div>
+            </div>
           </div>
+        </section>
 
-          {/* تذييل القسم الأيمن */}
-          <div className="relative z-10 text-[10px] text-teal-300/60 font-mono">
-            نظام رصد قومي سيادي موحد • MOHP-MASAR
-          </div>
-
-        </div>
-
-        {/* ============================================================ */}
-        {/* 2. القسم الأيسر (الفورم الأبيض النقي المريح للعين) */}
-        {/* ============================================================ */}
-        <div className="w-full md:w-[52%] bg-white p-7 sm:p-9 md:p-10 flex flex-col justify-between">
-          
-          <div>
-            {/* الشريط العلوي في الفورم مطابق للصورة بدون أي أزرار مكررة */}
-            <div className="flex items-center justify-between">
-              <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-[#e6f4f1] text-[#0d7a70] border border-[#b2e2d9]">
+        <section className="p-7 sm:p-9 lg:p-12 flex flex-col justify-center">
+          <div className="max-w-[430px] w-full mx-auto">
+            <div className="mb-7">
+              <span className="inline-flex px-2.5 py-1 rounded-lg bg-[#f3f6f8] border border-[#e1e7ed] text-[9px] font-extrabold text-slate-500">
                 بوابة الدخول الموحدة
               </span>
-              <span className="text-xs text-slate-400 font-medium">
-                نظام رسمي مؤمن
-              </span>
-            </div>
-
-            {/* عنوان الفورم والوصف */}
-            <div className="mt-5 mb-6">
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900">
-                تسجيل الدخول للمنظومة
-              </h2>
-              <p className="text-xs text-slate-400 font-medium mt-1">
-                أدخل البريد الإلكتروني وكلمة المرور المسجلة بسجلات المنظومة
+              <h2 className="text-2xl font-extrabold text-[#172033] mt-4">تسجيل الدخول</h2>
+              <p className="text-[11px] text-slate-500 mt-1.5 leading-6">
+                استخدم بيانات الحساب المعتمدة للوصول إلى نطاق العمل الخاص بك.
               </p>
             </div>
 
-            {/* تنبيه حالة التطوير والدعم الفني */}
             {error && (
-              <div className="mb-4 p-3.5 rounded-2xl bg-amber-50 border border-amber-300 flex items-start gap-2.5 text-xs text-amber-900 animate-in fade-in leading-relaxed shadow-xs">
-                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-bold text-amber-950">تنبيه النظام:</div>
-                  <div className="text-[12px] text-amber-900 mt-0.5">{error}</div>
-                </div>
+              <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 flex-shrink-0" />
+                <div className="text-[10px] text-rose-800 leading-5">{error}</div>
               </div>
             )}
 
-            {/* فورم تسجيل الدخول */}
             <form onSubmit={handleSubmit} className="space-y-4">
-              
-              {/* حقل البريد الإلكتروني */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 text-right">
-                  البريد الإلكتروني المعتمد
-                </label>
+              <label className="block">
+                <span className="block text-[10px] font-extrabold text-slate-700 mb-1.5">البريد الإلكتروني أو اسم المستخدم</span>
                 <div className="relative">
+                  <UserRound className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     required
+                    autoComplete="username"
                     value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="name@moh.gov.eg"
-                    dir="ltr"
-                    className="w-full bg-white border border-slate-200 text-slate-900 text-sm rounded-xl px-3.5 py-2.5 font-medium text-left placeholder:text-slate-300 focus:outline-none focus:border-[#0d7a70] focus:ring-1 focus:ring-[#0d7a70] transition"
+                    onChange={e => setIdentifier(e.target.value)}
+                    placeholder="أدخل بيانات الحساب"
+                    className="gov-input h-12 pr-10 pl-3 text-sm"
                   />
                 </div>
-              </div>
+              </label>
 
-              {/* حقل كلمة المرور */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 text-right">
-                  كلمة المرور
-                </label>
+              <label className="block">
+                <span className="block text-[10px] font-extrabold text-slate-700 mb-1.5">كلمة المرور</span>
                 <div className="relative">
+                  <LockKeyhole className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
+                    autoComplete="current-password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={e => setPassword(e.target.value)}
                     placeholder="••••••••••••"
-                    dir="ltr"
-                    className="w-full bg-white border border-slate-200 text-slate-900 text-sm rounded-xl px-3.5 py-2.5 pl-10 font-medium text-left placeholder:text-slate-300 focus:outline-none focus:border-[#0d7a70] focus:ring-1 focus:ring-[#0d7a70] transition"
+                    className="gov-input h-12 pr-10 pl-11 text-sm"
                   />
-                  {/* زر إظهار وإخفاء كلمة المرور */}
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 transition cursor-pointer"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
                     title={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-              </div>
+              </label>
 
-              {/* سطر: تذكرني على هذا الجهاز + نسيت كلمة المرور / الدعم الفني */}
-              <div className="flex items-center justify-between text-xs pt-0.5">
-                <label className="flex items-center gap-2 cursor-pointer select-none text-slate-700 font-medium">
+              <div className="flex items-center justify-between gap-3 text-[10px]">
+                <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#0d7a70] accent-[#0d7a70] focus:ring-[#0d7a70] cursor-pointer"
+                    onChange={e => setRememberMe(e.target.checked)}
+                    className="accent-[#087f78]"
                   />
-                  <span>تذكرني على هذا الجهاز</span>
+                  تذكرني على هذا الجهاز
                 </label>
 
                 <button
                   type="button"
-                  onClick={handleOpenPasswordResetModal}
-                  className="text-[#0d7a70] hover:text-[#0a5c54] font-bold hover:underline transition cursor-pointer flex items-center gap-1"
+                  onClick={() => setShowSupportModal(true)}
+                  className="font-extrabold text-[#087f78] hover:underline"
                 >
-                  <span>نسيت كلمة المرور؟ الدعم الفني</span>
-                  <Headphones className="w-3.5 h-3.5" />
+                  مساعدة في الدخول
                 </button>
               </div>
 
-              {/* زر الدخول الرئيسي */}
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 px-4 rounded-xl bg-[#0d7a70] hover:bg-[#0b655d] text-white font-bold text-sm transition shadow-xs hover:shadow-md cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {loading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <span>دخول المنظومة</span>
-                  )}
-                </button>
-              </div>
-
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-12 rounded-xl gov-btn-primary text-sm font-extrabold flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-white/35 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    دخول المنظومة
+                  </>
+                )}
+              </button>
             </form>
 
-            {/* صندوق التأمين والتحذير الحكومي الرسمي */}
-            <div className="mt-5 p-3.5 rounded-2xl bg-[#f4faf9] border border-[#ccebe5] flex items-start gap-3">
-              <div className="p-1.5 rounded-lg bg-white text-[#0d7a70] border border-[#b8e4dc] shrink-0 mt-0.5">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-              <div className="text-right">
-                <div className="text-xs font-bold text-slate-900">
-                  منظومة حكومية رسمية مشفرة
-                </div>
-                <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
-                  الدخول مقصور على السادة الأعضاء والموظفين المصرح لهم رسمياً. كافة محاولات الدخول وأنشطة المستخدمين مسجلة ومراقبة أمنياً.
-                </p>
-              </div>
+            <div className="mt-6 pt-5 border-t border-slate-100 text-[9px] text-slate-400 leading-5">
+              الدخول مخصص للمستخدمين المصرح لهم. يتم تطبيق سياسات الصلاحيات وسجل التدقيق على العمليات الحساسة داخل المنظومة.
             </div>
-
           </div>
-
-          {/* التذييل السفلي في بطاقة الفورم */}
-          <div className="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-            <span>منظومة إلكترونية موحدة ومؤمنة</span>
-            <span className="font-mono">الإصدار 2.4</span>
-          </div>
-
-        </div>
-
+        </section>
       </div>
 
-      {/* ============================================================ */}
-      {/* 3. شريط الحسابات التجريبية السريعة (مكتوبة تحت في الأسفل كما هي) */}
-      {/* ============================================================ */}
-      <div className="mt-5 max-w-[960px] w-full px-2 text-xs flex flex-wrap items-center justify-center gap-2">
-        <span className="text-slate-500 font-bold ml-1">
-          تسجيل دخول سريع للتجربة:
-        </span>
-        
-        <button
-          type="button"
-          onClick={() => handleSelectQuickAccount('superadmin@masar.moh.gov.eg')}
-          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:border-[#0d7a70] hover:text-[#0d7a70] transition font-medium shadow-2xs"
-        >
-          السوبر أدمن
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleSelectQuickAccount('minister.office@masar.moh.gov.eg')}
-          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:border-[#0d7a70] hover:text-[#0d7a70] transition font-medium shadow-2xs"
-        >
-          رئيس القطاع
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleSelectQuickAccount('central.admin@masar.moh.gov.eg')}
-          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:border-[#0d7a70] hover:text-[#0d7a70] transition font-medium shadow-2xs"
-        >
-          رئيس الإدارة المركزية
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleSelectQuickAccount('gen.dir.fp@masar.moh.gov.eg')}
-          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:border-[#0d7a70] hover:text-[#0d7a70] transition font-medium shadow-2xs"
-        >
-          مدير عام تنظيم الأسرة
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleSelectQuickAccount('dir.cairo@masar.moh.gov.eg')}
-          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:border-[#0d7a70] hover:text-[#0d7a70] transition font-medium shadow-2xs"
-        >
-          مديرية القاهرة
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleSelectQuickAccount('dist.nasr.cairo@masar.moh.gov.eg')}
-          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:border-[#0d7a70] hover:text-[#0d7a70] transition font-medium shadow-2xs"
-        >
-          إدارة مدينة نصر
-        </button>
-      </div>
-
-      {/* ============================================================ */}
-      {/* 4. نافذة بوب اب الدعم الفني وتغيير كلمة السر (بألوان فاتحة ومريحة) */}
-      {/* ============================================================ */}
       {showSupportModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl relative space-y-4 animate-in zoom-in-95">
-            
-            {/* زر الإغلاق */}
-            <button
-              onClick={() => setShowSupportModal(false)}
-              className="absolute left-5 top-5 text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-3 pb-2 border-b border-slate-100">
-              <div className="w-11 h-11 rounded-2xl bg-[#e6f4f1] text-[#0d7a70] flex items-center justify-center border border-[#b2e2d9]">
-                <Headphones className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  {supportModalTitle}
-                </h3>
-                <p className="text-xs text-slate-400">
-                  الإدارة العامة للتحول الرقمي والدعم الفني — ديوان عام الوزارة
-                </p>
-              </div>
-            </div>
-
-            {/* إرشادات أمنية */}
-            <div className="p-3.5 rounded-2xl bg-teal-50/70 border border-teal-200 text-xs text-teal-900 leading-relaxed space-y-1.5">
-              <div className="flex items-center gap-1.5 font-bold text-[#0d7a70]">
-                <Shield className="w-4 h-4" />
-                <span>إجراءات الأمان وإعادة تعيين الحساب:</span>
-              </div>
-              <p className="text-[11px] text-teal-800">
-                حفاظاً على سرية البيانات القومية، يتم إعادة تعيين كلمات المرور حصراً عبر مسؤول النظام المركزي (Super Admin) أو مدير الدعم الفني بالمديرية بعد التحقق من بطاقة الرقم القومي.
-              </p>
-            </div>
-
-            {/* قنوات التواصل الرسمية */}
-            <div className="space-y-2 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-emerald-600" />
-                  <span className="font-bold text-slate-800">الخط الساخن لوزارة الصحة:</span>
+        <div className="fixed inset-0 z-[80] bg-slate-950/45 backdrop-blur-[2px] flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white border border-[#dfe6ee] rounded-2xl shadow-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-[#eaf9f7] text-[#087f78] flex items-center justify-center">
+                  <Headphones className="w-4 h-4" />
                 </div>
-                <span className="font-mono text-sm font-black text-emerald-700">15335</span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-[#0d7a70]" />
-                  <span className="font-bold text-slate-800">هاتف غرفة الدعم المركزي:</span>
+                <div>
+                  <h3 className="text-sm font-extrabold text-[#172033]">الدعم الفني وإعادة تعيين كلمة المرور</h3>
+                  <p className="text-[9px] text-slate-400 mt-0.5">التواصل مع مسؤول النظام المعتمد</p>
                 </div>
-                <span className="font-mono text-xs font-bold text-slate-700 dir-ltr">02-27921000 (داخلي: 2026)</span>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-indigo-600" />
-                  <span className="font-bold text-slate-800">البريد الإلكتروني:</span>
-                </div>
-                <span className="font-mono text-xs font-bold text-indigo-700">support@masar.moh.gov.eg</span>
-              </div>
-            </div>
-
-            <div className="pt-2">
               <button
-                type="button"
                 onClick={() => setShowSupportModal(false)}
-                className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
+                className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-slate-100"
               >
-                إغلاق النافذة
+                <X className="w-4 h-4" />
               </button>
             </div>
 
+            <div className="p-5 space-y-3">
+              <div className="rounded-xl bg-[#f7fafb] border border-[#e2e8ee] p-4">
+                <div className="flex items-start gap-2.5">
+                  <ShieldCheck className="w-4 h-4 text-[#087f78] mt-0.5" />
+                  <p className="text-[10px] text-slate-600 leading-6">
+                    لإعادة تعيين كلمة المرور أو استعادة الحساب، تواصل مع مسؤول النظام أو الدعم الفني المعتمد في الجهة التابعة لك حتى يتم التحقق من الهوية والنطاق الإداري.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowSupportModal(false)}
+                className="w-full h-10 rounded-xl gov-btn-secondary text-[10px] font-extrabold"
+              >
+                إغلاق
+              </button>
+            </div>
           </div>
         </div>
       )}
-
     </div>
   );
 };
