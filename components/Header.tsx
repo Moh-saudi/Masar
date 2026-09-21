@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { UserProfile } from '@/lib/types';
 import { SYSTEM_NAME, SYSTEM_FULL_NAME, MINISTRY_NAME, SECTOR_NAME } from '@/lib/constants';
 import { useAuth } from '@/lib/auth-context';
+import { ConfirmationDialog } from './ConfirmationDialog';
 import {
   Clock3,
   LogOut,
@@ -29,10 +30,11 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAuditLogs,
 }) => {
   const { logout } = useAuth();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogout = async () => {
-    const confirmed = window.confirm('تأكيد تسجيل الخروج من منظومة «مَسَار»؟');
-    if (confirmed) await logout();
+    setShowLogoutConfirm(false);
+    await logout();
   };
 
   const roleIcon =
@@ -130,7 +132,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             <button
-              onClick={handleLogout}
+              onClick={() => setShowLogoutConfirm(true)}
               className="w-10 h-10 rounded-xl border border-[#eadde1] bg-white flex items-center justify-center text-rose-600 hover:bg-rose-50 transition"
               title="تسجيل الخروج"
             >
@@ -140,6 +142,15 @@ export const Header: React.FC<HeaderProps> = ({
 
         </div>
       </div>
+      <ConfirmationDialog
+        open={showLogoutConfirm}
+        title="تسجيل الخروج"
+        message="هل تريد إنهاء الجلسة الحالية وتسجيل الخروج من منظومة «مَسَار»؟"
+        confirmLabel="تسجيل الخروج"
+        tone="warning"
+        onConfirm={handleLogout}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
     </header>
   );
 };
