@@ -183,10 +183,10 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in">
+    <div className="space-y-4">
       
       {/* 1. ترويسة الجناح التنفيذي للوزارة (Ministry Executive Suite) */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <div className="gov-surface p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-amber-500" />
@@ -227,7 +227,7 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
             onClick={onOpenReport}
             className="px-4 py-2 rounded-xl text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 flex items-center gap-1.5 transition shadow-2xs cursor-pointer"
           >
-            <FileCheck2 className="w-3.5 h-3.5 text-sky-600" />
+            <FileCheck2 className="w-3.5 h-3.5 text-[#087f78]" />
             <span>عرض التقرير القومي A4</span>
           </button>
 
@@ -244,7 +244,7 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
       </div>
 
       {/* 2. تبويبات المستويات القيادية الـ 3 المحددة بالوثيقة الرسمية */}
-      <div className="bg-slate-100 p-1.5 rounded-2xl flex flex-wrap items-center gap-2 text-xs">
+      <div className="bg-[#f2f5f8] border border-[#e1e7ed] p-1.5 rounded-2xl flex flex-wrap items-center gap-2 text-xs">
         <button
           onClick={() => setSuiteTab('macro')}
           className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 ${
@@ -253,7 +253,7 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <BrainCircuit className="w-4 h-4 text-sky-600" />
+          <BrainCircuit className="w-4 h-4 text-[#087f78]" />
           <span>رئيس القطاع ومعالي الوزير (Macro Strategic & AI Forecast)</span>
         </button>
 
@@ -286,7 +286,7 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
 
       {/* أ. لوحة رئيس القطاع ومعالي الوزير (Macro Strategy) */}
       {suiteTab === 'macro' && (
-        <div className="space-y-6 animate-in fade-in">
+        <div className="space-y-4">
           {/* البطاقات السيادية */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
@@ -309,8 +309,8 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
 
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
               <div className="text-xs text-slate-500 font-semibold mb-1">جاهزية الاعتماد القومي</div>
-              <div className="text-3xl font-black font-mono text-sky-700">{nationalRate}%</div>
-              <div className="text-[11px] text-sky-600 mt-1 font-medium">{approvedDistricts} من {totalDistricts} إدارة معتمدة</div>
+              <div className="text-3xl font-black font-mono text-[#087f78]">{nationalRate}%</div>
+              <div className="text-[11px] text-[#087f78] mt-1 font-medium">{approvedDistricts} من {totalDistricts} إدارة معتمدة</div>
             </div>
           </div>
 
@@ -319,7 +319,7 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
             <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <BrainCircuit className="w-5 h-5 text-sky-600" />
+                  <BrainCircuit className="w-5 h-5 text-[#087f78]" />
                   <span>منحنى التنبؤ الفصلي بانخفاض معدلات المواليد (AI Predictive Demographic Forecast)</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -376,7 +376,7 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
 
       {/* ب. لوحة رئيس الإدارة المركزية (Tactical BI & الأقاليم والقوى البشرية) */}
       {suiteTab === 'tactical' && (
-        <div className="space-y-6 animate-in fade-in">
+        <div className="space-y-4">
           {/* مقارنة أقاليم الجمهورية الأربعة */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
@@ -418,7 +418,7 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
                   <div key={idx} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60">
                     <div className="flex items-center justify-between text-xs font-bold text-slate-900 mb-1.5">
                       <span className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-sky-600" />
+                        <MapPin className="w-3.5 h-3.5 text-[#087f78]" />
                         <span>{reg.name}</span>
                       </span>
                       <span className="font-mono text-indigo-700 font-bold">
@@ -441,7 +441,7 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
 
       {/* ج. لوحة المدير العام (Deep Dive - الأصناف وأطباء الاستعانة) */}
       {suiteTab === 'deep_dive' && (
-        <div className="space-y-6 animate-in fade-in">
+        <div className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* تفاصيل أصناف الوسائل المنصرفة */}
@@ -459,7 +459,7 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
                     <span className="font-bold text-slate-800">{item.name}</span>
                     <div className="flex items-center gap-2">
                       <span className="font-mono font-bold text-slate-900">{item.count.toLocaleString('en-US')}</span>
-                      <span className="px-2 py-0.5 rounded bg-sky-100 text-sky-800 font-mono font-bold text-[10px]">{item.share}</span>
+                      <span className="px-2 py-0.5 rounded bg-[#dff4f1] text-[#066963] font-mono font-bold text-[10px]">{item.share}</span>
                     </div>
                   </div>
                 ))}
