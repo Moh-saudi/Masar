@@ -6,14 +6,17 @@ import { DirectorateReviewView } from './DirectorateReviewView';
 import { DirectorateDashboardView } from './DirectorateDashboardView';
 import { ReportsCenterView } from './ReportsCenterView';
 import { DirectoratePpfpReportView } from './DirectoratePpfpReportView';
-import { 
-  Building2, 
-  FileCheck2, 
-  BarChart3, 
-  FileSpreadsheet, 
-  ShieldAlert,
-  Download,
-  Baby
+import {
+  Building2,
+  FileCheck2,
+  BarChart3,
+  FileSpreadsheet,
+  Baby,
+  MapPin,
+  Clock3,
+  CheckCircle2,
+  RotateCcw,
+  CircleDot
 } from 'lucide-react';
 
 interface DirectoratePortalProps {
@@ -23,123 +26,169 @@ interface DirectoratePortalProps {
   onDataChanged: () => void;
 }
 
+type Tab = 'review' | 'dashboard' | 'ppfp' | 'reports';
+
 export const DirectoratePortal: React.FC<DirectoratePortalProps> = ({
   submissions,
   user,
   timeLock,
   onDataChanged,
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'review' | 'dashboard' | 'ppfp' | 'reports'>('review');
+  const [activeSubTab, setActiveSubTab] = useState<Tab>('review');
 
-  // حصر البيانات في محافظة المستخدم فقط
   const govName = user.governorate_name_ar || 'القاهرة';
   const govSubmissions = submissions.filter(s => s.governorate_name_ar === govName);
 
   const pendingReviewCount = govSubmissions.filter(s => s.status === 'SUBMITTED_LOCKED').length;
   const returnedCount = govSubmissions.filter(s => s.status === 'RETURNED').length;
+  const approvedCount = govSubmissions.filter(s => s.directorate_status === 'APPROVED').length;
+
+  const navItems: Array<{
+    id: Tab;
+    label: string;
+    icon: React.ReactNode;
+    count?: number;
+  }> = [
+    { id: 'review', label: 'مراجعة واعتماد الإدارات', icon: <FileCheck2 className="w-4 h-4" />, count: pendingReviewCount },
+    { id: 'dashboard', label: 'مؤشرات المحافظة', icon: <BarChart3 className="w-4 h-4" /> },
+    { id: 'ppfp', label: 'مستشفيات الولادة والـ PPFP', icon: <Baby className="w-4 h-4" /> },
+    { id: 'reports', label: 'التقارير والتصدير', icon: <FileSpreadsheet className="w-4 h-4" /> },
+  ];
+
+  const pageTitle =
+    activeSubTab === 'review' ? 'مراجعة واعتماد بيانات الإدارات الصحية' :
+    activeSubTab === 'dashboard' ? 'مؤشرات الأداء على مستوى المحافظة' :
+    activeSubTab === 'ppfp' ? 'تقرير مستشفيات الولادة والـ PPFP' :
+    'التقارير والتصدير';
 
   return (
-    <div className="space-y-6 animate-in fade-in">
-      
-      {/* ترويسة بوابة مديرية الشئون الصحية */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center border border-sky-200">
-              <Building2 className="w-4 h-4" />
+    <div className="grid grid-cols-1 xl:grid-cols-[280px_minmax(0,1fr)] gap-5 items-start">
+
+      <aside className="xl:sticky xl:top-[94px] space-y-4">
+        <div className="gov-surface p-3">
+          <div className="px-2 py-2.5 border-b border-slate-100">
+            <p className="text-[10px] font-bold text-slate-400 mb-1">نطاق المديرية</p>
+            <h2 className="text-sm font-extrabold text-[#172033] leading-6">
+              مديرية الشئون الصحية
+            </h2>
+            <div className="flex items-center gap-1.5 mt-1 text-[10px] text-slate-500">
+              <MapPin className="w-3.5 h-3.5" />
+              <span>محافظة {govName}</span>
             </div>
+          </div>
+
+          <nav className="py-2 space-y-1">
+            {navItems.map(item => (
+              <button
+                key={item.id}
+                onClick={() => setActiveSubTab(item.id)}
+                className="gov-nav-item"
+                data-active={activeSubTab === item.id}
+              >
+                {item.icon}
+                <span className="flex-1 text-right">{item.label}</span>
+                {typeof item.count === 'number' && item.count > 0 && (
+                  <span className="min-w-5 h-5 px-1.5 rounded-full bg-[#087f78] text-white text-[9px] font-extrabold flex items-center justify-center tabular-nums">
+                    {item.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        <div className="gov-surface p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock3 className="w-4 h-4 text-[#087f78]" />
+            <h3 className="text-xs font-extrabold text-[#172033]">موقف المراجعة</h3>
+          </div>
+
+          <dl className="space-y-3 text-[11px]">
+            <div className="flex items-center justify-between gap-3">
+              <dt className="text-slate-500">إجمالي الإدارات</dt>
+              <dd className="font-extrabold text-slate-900 tabular-nums">{govSubmissions.length}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <dt className="text-slate-500">بانتظار المراجعة</dt>
+              <dd className="font-extrabold text-[#087f78] tabular-nums">{pendingReviewCount}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <dt className="text-slate-500">معتمد</dt>
+              <dd className="font-extrabold text-emerald-700 tabular-nums">{approvedCount}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <dt className="text-slate-500">مرجع للتعديل</dt>
+              <dd className="font-extrabold text-rose-700 tabular-nums">{returnedCount}</dd>
+            </div>
+          </dl>
+        </div>
+      </aside>
+
+      <section className="min-w-0 space-y-4">
+        <div className="gov-surface px-5 py-4 sm:px-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
-              <h2 className="text-base font-bold text-slate-900">
-                بوابة مديرية الشئون الصحية — محافظة {govName}
-              </h2>
-              <span className="text-xs text-slate-500 font-medium">
-                إدارة تنظيم الأسرة وتنمية الأسرة • فحص وتدقيق واعتماد الإدارات الصحية
-              </span>
+              <div className="flex items-center gap-2 text-[10px] font-bold text-[#087f78] mb-1.5">
+                <Building2 className="w-4 h-4" />
+                <span>بوابة مديرية الشئون الصحية</span>
+              </div>
+              <h1 className="text-lg sm:text-xl font-extrabold text-[#172033]">{pageTitle}</h1>
+              <p className="text-[11px] sm:text-xs text-slate-500 mt-1.5 leading-6">
+                متابعة الإدارات التابعة، مراجعة البيانات، وإدارة إجراءات الاعتماد ضمن صلاحيات المديرية.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 min-w-[320px]">
+              <div className="gov-kpi">
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mb-1">
+                  <CircleDot className="w-3.5 h-3.5 text-[#087f78]" />
+                  للمراجعة
+                </div>
+                <div className="font-extrabold text-base text-[#172033] tabular-nums">{pendingReviewCount}</div>
+              </div>
+              <div className="gov-kpi">
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mb-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  معتمد
+                </div>
+                <div className="font-extrabold text-base text-[#172033] tabular-nums">{approvedCount}</div>
+              </div>
+              <div className="gov-kpi">
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mb-1">
+                  <RotateCcw className="w-3.5 h-3.5 text-rose-500" />
+                  مرجع
+                </div>
+                <div className="font-extrabold text-base text-[#172033] tabular-nums">{returnedCount}</div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* أزرار التبديل الداخلية بين المراجعة واللوحة والـ PPFP والتقارير */}
-        <div className="flex items-center p-1 bg-slate-100 rounded-xl text-xs">
-          <button
-            onClick={() => setActiveSubTab('review')}
-            className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 relative ${
-              activeSubTab === 'review' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <FileCheck2 className="w-3.5 h-3.5 text-sky-600" />
-            <span>تدقيق واعتماد الإدارات</span>
-            {pendingReviewCount > 0 && (
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-sky-600 text-white font-bold">
-                {pendingReviewCount}
-              </span>
-            )}
-          </button>
+        {activeSubTab === 'review' && (
+          <DirectorateReviewView
+            submissions={govSubmissions}
+            user={user}
+            timeLock={timeLock}
+            onDataChanged={onDataChanged}
+          />
+        )}
 
-          <button
-            onClick={() => setActiveSubTab('dashboard')}
-            className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-              activeSubTab === 'dashboard' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <BarChart3 className="w-3.5 h-3.5 text-sky-600" />
-            <span>مؤشرات المحافظة والمقارنة البينية</span>
-          </button>
+        {activeSubTab === 'dashboard' && (
+          <DirectorateDashboardView
+            submissions={govSubmissions}
+            user={user}
+            onNavigateToReview={() => setActiveSubTab('review')}
+          />
+        )}
 
-          <button
-            onClick={() => setActiveSubTab('ppfp')}
-            className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-              activeSubTab === 'ppfp' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-indigo-800'
-            }`}
-          >
-            <Baby className="w-3.5 h-3.5 text-indigo-600" />
-            <span>مستشفيات الولادة والـ PPFP</span>
-          </button>
+        {activeSubTab === 'ppfp' && (
+          <DirectoratePpfpReportView submissions={govSubmissions} user={user} />
+        )}
 
-          <button
-            onClick={() => setActiveSubTab('reports')}
-            className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-              activeSubTab === 'reports' ? 'bg-white text-emerald-800 shadow-xs' : 'text-slate-600 hover:text-emerald-700'
-            }`}
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-            <span>تقارير وتصدير Excel</span>
-          </button>
-        </div>
-      </div>
-
-      {/* المحتوى الفعلي حسب التبويب المختار */}
-      {activeSubTab === 'review' && (
-        <DirectorateReviewView
-          submissions={govSubmissions}
-          user={user}
-          timeLock={timeLock}
-          onDataChanged={onDataChanged}
-        />
-      )}
-
-      {activeSubTab === 'dashboard' && (
-        <DirectorateDashboardView
-          submissions={govSubmissions}
-          user={user}
-          onNavigateToReview={() => setActiveSubTab('review')}
-        />
-      )}
-
-      {activeSubTab === 'ppfp' && (
-        <DirectoratePpfpReportView
-          submissions={govSubmissions}
-          user={user}
-        />
-      )}
-
-      {activeSubTab === 'reports' && (
-        <ReportsCenterView
-          submissions={govSubmissions}
-          user={user}
-        />
-      )}
-
+        {activeSubTab === 'reports' && (
+          <ReportsCenterView submissions={govSubmissions} user={user} />
+        )}
+      </section>
     </div>
   );
 };
