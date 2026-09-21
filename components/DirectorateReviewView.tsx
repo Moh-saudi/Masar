@@ -5,6 +5,7 @@ import { DailySubmission, UserProfile, TimeLockState } from '@/lib/types';
 import { SECTIONS_DEFINITIONS } from '@/lib/constants';
 import { MasarService } from '@/lib/masar-service';
 import { persistDailySubmission, writeAuditEvent } from '@/lib/services/submissions-client';
+import { OperationFeedbackDialog } from './OperationFeedbackDialog';
 import {
   CheckCircle2,
   RotateCcw,
@@ -39,6 +40,7 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
   const [isReturning, setIsReturning] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<FilterState>('all');
+  const [operationError, setOperationError] = useState<{ title: string; message: string } | null>(null);
 
   const filteredSubmissions = useMemo(() => {
     return submissions
@@ -77,8 +79,11 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
       setReturnReason('');
       setSelectedSub(null);
       onDataChanged();
-    } catch (err: any) {
-      alert(err.message || 'حدث خطأ أثناء إرجاع البيان');
+    } catch {
+      setOperationError({
+        title: 'تعذر إرجاع البيان',
+        message: 'لم نتمكن من إرجاع البيان للإدارة الصحية الآن. أعد المحاولة، وإذا استمرت المشكلة تواصل مع الدعم الفني.',
+      });
     }
   };
 
@@ -102,8 +107,11 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
         },
       });
       onDataChanged();
-    } catch (err: any) {
-      alert(err.message || 'حدث خطأ أثناء منح الفتح المؤقت');
+    } catch {
+      setOperationError({
+        title: 'تعذر منح الفتح المؤقت',
+        message: 'لم نتمكن من تفعيل الفتح الاستثنائي الآن. أعد المحاولة، وإذا استمرت المشكلة تواصل مع الدعم الفني.',
+      });
     }
   };
 
@@ -128,8 +136,11 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
       });
       setSelectedSub(null);
       onDataChanged();
-    } catch (err: any) {
-      alert(err.message || 'حدث خطأ أثناء اعتماد البيان');
+    } catch {
+      setOperationError({
+        title: 'تعذر اعتماد البيان',
+        message: 'لم يتم اعتماد البيان في الوقت الحالي. أعد المحاولة، وإذا استمرت المشكلة تواصل مع الدعم الفني.',
+      });
     }
   };
 
@@ -427,6 +438,15 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
           </div>
         </div>
       )}
+      <OperationFeedbackDialog
+        open={Boolean(operationError)}
+        type="error"
+        title={operationError?.title || 'تعذر إتمام العملية'}
+        message={operationError?.message || 'حدث خطأ غير متوقع.'}
+        onClose={() => setOperationError(null)}
+        onRetry={() => setOperationError(null)}
+      />
+
     </div>
   );
 };
