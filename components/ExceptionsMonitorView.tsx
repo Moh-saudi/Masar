@@ -137,10 +137,10 @@ export const ExceptionsMonitorView: React.FC<ExceptionsMonitorViewProps> = ({
   });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       
       {/* 1. ترويسة غرفة العمليات والرصد الاستثنائي */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <div className="gov-surface p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <ShieldAlert className="w-5 h-5 text-rose-600" />
@@ -235,17 +235,17 @@ export const ExceptionsMonitorView: React.FC<ExceptionsMonitorViewProps> = ({
           onClick={() => setFilterType('override')}
           className={`p-4 rounded-xl border text-right transition shadow-2xs ${
             filterType === 'override'
-              ? 'bg-sky-700 text-white border-sky-700'
-              : 'bg-white text-slate-700 border-slate-200 hover:border-sky-300'
+              ? 'bg-[#087f78] text-white border-sky-700'
+              : 'bg-white text-slate-700 border-slate-200 hover:border-[#a8ddd7]'
           }`}
         >
           <div className="flex items-center justify-between text-xs mb-1">
             <span className={filterType === 'override' ? 'text-sky-100' : 'text-slate-500'}>
               فتح مؤقت سارٍ (30 د)
             </span>
-            <Unlock className={`w-4 h-4 ${filterType === 'override' ? 'text-white' : 'text-sky-600'}`} />
+            <Unlock className={`w-4 h-4 ${filterType === 'override' ? 'text-white' : 'text-[#087f78]'}`} />
           </div>
-          <div className={`text-2xl font-bold font-mono ${filterType === 'override' ? 'text-white' : 'text-sky-700'}`}>
+          <div className={`text-2xl font-bold font-mono ${filterType === 'override' ? 'text-white' : 'text-[#087f78]'}`}>
             {overrideList.length}
           </div>
           <div className="text-[11px] opacity-70 mt-1">رخص الجهة الأم النشطة</div>
@@ -254,7 +254,7 @@ export const ExceptionsMonitorView: React.FC<ExceptionsMonitorViewProps> = ({
       </div>
 
       {/* 3. شريط الفلترة والبحث المتقدم */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+      <div className="gov-surface p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
         
         {/* شريط البحث النصي */}
         <div className="relative w-full sm:w-72">
@@ -264,7 +264,7 @@ export const ExceptionsMonitorView: React.FC<ExceptionsMonitorViewProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="بحث بالإدارة، المحافظة، أو الملاحظة..."
-            className="w-full text-xs py-2 pr-9 pl-3 rounded-lg border border-slate-200 focus:border-sky-500 focus:outline-none bg-slate-50 text-slate-800"
+            className="w-full text-xs py-2 pr-9 pl-3 rounded-lg border border-slate-200 focus:border-[#087f78] focus:outline-none bg-slate-50 text-slate-800"
           />
         </div>
 
@@ -274,7 +274,7 @@ export const ExceptionsMonitorView: React.FC<ExceptionsMonitorViewProps> = ({
           <select
             value={selectedGov}
             onChange={(e) => setSelectedGov(e.target.value)}
-            className="bg-slate-50 border border-slate-200 text-slate-800 py-1.5 px-3 rounded-lg text-xs focus:outline-none focus:border-sky-500 font-semibold"
+            className="bg-slate-50 border border-slate-200 text-slate-800 py-1.5 px-3 rounded-lg text-xs focus:outline-none focus:border-[#087f78] font-semibold"
           >
             <option value="all">جميع المحافظات ({SAMPLE_GOVERNORATES.length})</option>
             {SAMPLE_GOVERNORATES.map(g => (
@@ -286,7 +286,7 @@ export const ExceptionsMonitorView: React.FC<ExceptionsMonitorViewProps> = ({
       </div>
 
       {/* 4. الجدول التنفيذي الموحد لكافة الاستثناءات */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+      <div className="gov-surface overflow-hidden shadow-xs">
         <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between text-xs font-bold text-slate-800">
           <span>سجل الاستثناءات الميدانية ({filteredExceptions.length} حالة)</span>
           <span className="font-normal text-slate-400">تحديث فوري لفرق المتابعة المركزية</span>
@@ -336,8 +336,8 @@ export const ExceptionsMonitorView: React.FC<ExceptionsMonitorViewProps> = ({
                         </span>
                       )}
                       {exc.type === 'override' && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
-                          <Unlock className="w-3 h-3 text-sky-600" />
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#eef9f7] text-[#087f78] border border-[#ccebe7]">
+                          <Unlock className="w-3 h-3 text-[#087f78]" />
                           <span>فتح مؤقت سارٍ</span>
                         </span>
                       )}
@@ -375,7 +375,7 @@ export const ExceptionsMonitorView: React.FC<ExceptionsMonitorViewProps> = ({
                       {exc.submission ? (
                         <button
                           onClick={() => setActiveModalSub(exc.submission!)}
-                          className="p-1.5 rounded-md hover:bg-slate-100 text-sky-700 font-semibold text-xs flex items-center justify-center mx-auto"
+                          className="p-1.5 rounded-md hover:bg-slate-100 text-[#087f78] font-semibold text-xs flex items-center justify-center mx-auto"
                           title="فحص تفاصيل البيان"
                         >
                           <Eye className="w-4 h-4" />
@@ -432,10 +432,10 @@ export const ExceptionsMonitorView: React.FC<ExceptionsMonitorViewProps> = ({
               )}
 
               {activeModalSub.override_reason && (
-                <div className="p-3.5 rounded-xl bg-sky-50 border border-sky-200 space-y-1">
+                <div className="p-3.5 rounded-xl bg-[#eef9f7] border border-[#ccebe7] space-y-1">
                   <div className="font-bold text-sky-900">بيانات الفتح الاستثنائي:</div>
-                  <p className="text-sky-800">{activeModalSub.override_reason}</p>
-                  <div className="text-[11px] text-sky-700 pt-1">
+                  <p className="text-[#066963]">{activeModalSub.override_reason}</p>
+                  <div className="text-[11px] text-[#087f78] pt-1">
                     المانح للفتح: {activeModalSub.override_granted_by} • {activeModalSub.override_granted_at}
                   </div>
                 </div>
