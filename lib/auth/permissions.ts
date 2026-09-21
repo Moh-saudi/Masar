@@ -6,15 +6,28 @@ export type Role =
   | 'directorate_user'
   | 'district_user'
 
-const permissions: Record<Role, string[]> = {
-  super_admin: ['users.manage','reports.view','reports.override'],
-  sector_head: ['reports.view','reports.approve'],
-  central_admin: ['reports.view','reports.review'],
-  general_director: ['reports.view','reports.review'],
-  directorate_user: ['reports.review','reports.approve'],
-  district_user: ['reports.create','reports.submit']
+export type Permission =
+  | 'users.manage'
+  | 'reports.view'
+  | 'reports.create'
+  | 'reports.approve'
+  | 'reports.override'
+
+const permissions: Record<Role, Permission[]> = {
+  super_admin: [
+    'users.manage',
+    'reports.view',
+    'reports.create',
+    'reports.approve',
+    'reports.override',
+  ],
+  sector_head: ['reports.view', 'reports.approve'],
+  central_admin: ['reports.view', 'reports.approve'],
+  general_director: ['reports.view', 'reports.approve'],
+  directorate_user: ['reports.view', 'reports.approve'],
+  district_user: ['reports.view', 'reports.create'],
 }
 
-export function can(role: Role, permission: string) {
+export function can(role: Role, permission: Permission) {
   return permissions[role]?.includes(permission) ?? false
 }
