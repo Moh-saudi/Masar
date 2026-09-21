@@ -26,7 +26,10 @@ export const OverrideRequestModal: React.FC<OverrideRequestModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reason.trim()) {
-      alert('يرجى توضيح سبب طلب الفتح الاستثنائي بصورة تفصيلية.');
+      setOperationError({
+        title: 'سبب الطلب مطلوب',
+        message: 'اكتب سبب طلب الفتح الاستثنائي بصورة واضحة قبل إرسال الطلب إلى المديرية.',
+      });
       return;
     }
 
@@ -47,7 +50,6 @@ export const OverrideRequestModal: React.FC<OverrideRequestModalProps> = ({
         },
       });
       onRequestSubmitted(persisted);
-      alert('تم رفع طلب الفتح الاستثنائي بنجاح إلى مديرية الشئون الصحية (الجهة الأم). سيتم فحص الطلب فورياً.');
       onClose();
     } catch {
       setOperationError({
