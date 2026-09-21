@@ -12,6 +12,8 @@ import { ReportsCenterView } from '@/components/ReportsCenterView';
 import { AdminUsersPortal } from '@/components/AdminUsersPortal';
 import { AuditLogModal } from '@/components/AuditLogModal';
 import { MasarService } from '@/lib/masar-service';
+import { fetchDailySubmissions } from '@/lib/services/submissions-client';
+import { fetchAuditTrail } from '@/lib/services/audit-client';
 import { DailySubmission, TimeLockState, AuditLog } from '@/lib/types';
 import { 
   Building, 
@@ -43,11 +45,27 @@ export default function MasarPlatformPage() {
   });
 
   // مزامنة البيانات
-  const reloadData = useCallback(() => {
-    MasarService.initialize();
-    const subs = MasarService.getSubmissions();
-    setSubmissions([...subs]);
-    setAuditLogs([...MasarService.getAuditLogs()]);
+  const reloadData = useCallback(async () => {
+    try {
+      const [subs, logs] = await Promise.all([
+        fetchDailySubmissions(),
+        fetchAuditTrail().catch(() => []),
+      ]);
+
+      if (subs.length > 0) {
+        setSubmissions(subs);
+      } else {
+        MasarService.initialize();
+        setSubmissions([...MasarService.getSubmissions()]);
+      }
+
+      setAuditLogs(logs.length > 0 ? logs : [...MasarService.getAuditLogs()]);
+    } catch (error) {
+      console.warn('Database load failed; using local fallback.', error);
+      MasarService.initialize();
+      setSubmissions([...MasarService.getSubmissions()]);
+      setAuditLogs([...MasarService.getAuditLogs()]);
+    }
   }, []);
 
   useEffect(() => {
