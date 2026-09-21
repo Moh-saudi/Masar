@@ -6,6 +6,7 @@ import { SECTIONS_DEFINITIONS } from '@/lib/constants';
 import { MasarService } from '@/lib/masar-service';
 import { persistDailySubmission, writeAuditEvent } from '@/lib/services/submissions-client';
 import { OperationFeedbackDialog } from './OperationFeedbackDialog';
+import { ConfirmationDialog } from './ConfirmationDialog';
 import {
   CheckCircle2,
   RotateCcw,
@@ -41,6 +42,7 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<FilterState>('all');
   const [operationError, setOperationError] = useState<{ title: string; message: string } | null>(null);
+  const [confirmation, setConfirmation] = useState<{ type: 'override' | 'approve'; districtId: string } | null>(null);
 
   const filteredSubmissions = useMemo(() => {
     return submissions
@@ -91,9 +93,6 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
   };
 
   const handleGrantOverride = async (districtId: string) => {
-    const confirmed = window.confirm('تأكيد منح فتح استثنائي مؤقت لمدة 30 دقيقة للإدارة الصحية؟');
-    if (!confirmed) return;
-
     try {
       const updated = MasarService.grantOverride(districtId, user);
       const persisted = await persistDailySubmission(updated, user);
@@ -119,9 +118,6 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
   };
 
   const handleApproveSubmission = async (districtId: string) => {
-    const confirmed = window.confirm('تأكيد اعتماد بيان الإدارة الصحية وإرساله للمستوى التالي؟');
-    if (!confirmed) return;
-
     try {
       const updated = MasarService.approveDirectorateSubmission(districtId, user);
       const persisted = await persistDailySubmission(updated, user);
@@ -281,7 +277,7 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
                     </button>
 
                     <button
-                      onClick={() => handleGrantOverride(sub.district_id)}
+                      onClick={() => setConfirmation({ type: 'override', districtId: sub.district_id })}
                       className="h-9 px-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-[9px] font-extrabold flex items-center gap-1.5 hover:bg-amber-100 transition"
                     >
                       <Unlock className="w-3.5 h-3.5" />
@@ -300,7 +296,7 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
                     </button>
 
                     <button
-                      onClick={() => handleApproveSubmission(sub.district_id)}
+                      onClick={() => setConfirmation({ type: 'approve', districtId: sub.district_id })}
                       className="h-9 px-3.5 rounded-lg bg-[#147d64] border border-[#147d64] text-white text-[9px] font-extrabold flex items-center gap-1.5 hover:bg-[#0f6d57] transition"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
@@ -430,7 +426,7 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
                   </button>
                 ) : (
                   <button
-                    onClick={() => handleApproveSubmission(selectedSub.district_id)}
+                    onClick={() => setConfirmation({ type: 'approve', districtId: selectedSub.district_id })}
                     className="h-9 px-4 rounded-lg bg-[#147d64] text-white text-[9px] font-extrabold hover:bg-[#0f6d57] transition"
                   >
                     اعتماد البيان
@@ -441,6 +437,29 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
           </div>
         </div>
       )}
+      <ConfirmationDialog
+        open={Boolean(confirmation)}
+        title={confirmation?.type === 'override' ? 'منح فتح استثنائي' : 'اعتماد البيان'}
+        message={
+          confirmation?.type === 'override'
+            ? 'سيتم فتح البيان للإدارة الصحية لمدة 30 دقيقة مع تسجيل الإجراء في سجل التدقيق. هل تريد المتابعة؟'
+            : 'سيتم اعتماد بيان الإدارة الصحية وإرساله للمستوى التالي. هل تريد المتابعة؟'
+        }
+        confirmLabel={confirmation?.type === 'override' ? 'منح الفتح' : 'اعتماد البيان'}
+        tone={confirmation?.type === 'override' ? 'warning' : 'success'}
+        onConfirm={async () => {
+          const current = confirmation;
+          setConfirmation(null);
+          if (!current) return;
+          if (current.type === 'override') {
+            await handleGrantOverride(current.districtId);
+          } else {
+            await handleApproveSubmission(current.districtId);
+          }
+        }}
+        onCancel={() => setConfirmation(null)}
+      />
+
       <OperationFeedbackDialog
         open={Boolean(operationError)}
         type="error"
