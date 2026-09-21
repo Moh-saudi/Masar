@@ -6,6 +6,7 @@ import { SECTION_GROUPS, SECTIONS_DEFINITIONS } from '@/lib/constants';
 import { MasarService } from '@/lib/masar-service';
 import { persistDailySubmission, writeAuditEvent } from '@/lib/services/submissions-client';
 import { OperationFeedbackDialog } from './OperationFeedbackDialog';
+import { ConfirmationDialog } from './ConfirmationDialog';
 import {
   Save,
   Send,
@@ -57,6 +58,7 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [operationError, setOperationError] = useState<{ title: string; message: string } | null>(null);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
   const isLocked =
     (timeLock.is_district_locked || submission.status === 'SUBMITTED_LOCKED') &&
@@ -176,11 +178,6 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
 
   const handleSubmitReport = async () => {
     if (isLocked || isSaving) return;
-
-    const confirmed = window.confirm(
-      'هل تريد إرسال البيان اليومي إلى مديرية الشئون الصحية؟ بعد الإرسال سيتم إغلاق التعديل لحين المراجعة.'
-    );
-    if (!confirmed) return;
 
     setIsSaving(true);
     try {
@@ -636,7 +633,7 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
         </div>
 
         <button
-          onClick={handleSubmitReport}
+          onClick={() => setShowSubmitConfirm(true)}
           disabled={isLocked || isSaving}
           className="min-w-[210px] h-11 px-5 rounded-xl bg-[#18334f] hover:bg-[#122a42] text-white text-[11px] font-extrabold flex items-center justify-center gap-2 transition disabled:opacity-50"
         >
@@ -644,6 +641,20 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
           {isLocked ? 'البيان مغلق حاليًا' : 'إرسال البيان للمراجعة'}
         </button>
       </div>
+
+      <ConfirmationDialog
+        open={showSubmitConfirm}
+        title="إرسال البيان اليومي"
+        message="سيتم إرسال البيان إلى مديرية الشئون الصحية وإغلاق التعديل لحين المراجعة. هل تريد المتابعة؟"
+        confirmLabel="إرسال البيان"
+        tone="primary"
+        loading={isSaving}
+        onConfirm={async () => {
+          setShowSubmitConfirm(false);
+          await handleSubmitReport();
+        }}
+        onCancel={() => setShowSubmitConfirm(false)}
+      />
 
       <OperationFeedbackDialog
         open={Boolean(operationError)}
