@@ -94,7 +94,7 @@ export const AdminUsersPortal: React.FC<AdminUsersPortalProps> = ({
             }`}
           >
             <Users className="w-3.5 h-3.5 text-purple-600" />
-            <span>الحسابات والمستخدمين ({INITIAL_OFFICIAL_ACCOUNTS.length})</span>
+            <span>الحسابات والمستخدمين ({users.length})</span>
           </button>
 
           <button
