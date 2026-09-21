@@ -2,11 +2,12 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { UserProfile } from './types';
-import { createBrowserClient } from './supabase/client';
+import { createBrowserClient, isSupabaseConfigured } from './supabase/client';
 
 interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
+  configured: boolean;
   login: (identifier: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
 }
@@ -14,14 +15,22 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  configured: false,
   login: async () => ({ success: false }),
   logout: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const configured = isSupabaseConfigured();
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(configured);
+
   useEffect(() => {
+    if (!configured) {
+      setLoading(false);
+      return;
+    }
+
     const supabase = createBrowserClient();
     let mounted = true;
 
@@ -56,9 +65,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       listener.subscription.unsubscribe();
     };
-  }, []);
+  }, [configured]);
 
   async function login(identifier: string, password: string) {
+    if (!configured) {
+      return { success: false, error: 'SYSTEM_NOT_CONFIGURED' };
+    }
+
     const supabase = createBrowserClient();
     const email = identifier.includes('@')
       ? identifier
@@ -85,13 +98,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function logout() {
+    if (!configured) {
+      setUser(null);
+      return;
+    }
+
     const supabase = createBrowserClient();
     await supabase.auth.signOut();
     setUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, configured, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
