@@ -7,6 +7,7 @@ import {
   UserProfile 
 } from './types';
 import { SECTIONS_DEFINITIONS, SAMPLE_GOVERNORATES } from './constants';
+import { approveNationalReport } from './services/submissions-client';
 
 const STORAGE_KEY_SUBMISSIONS = 'masar_submissions_v4_prod';
 const STORAGE_KEY_AUDIT = 'masar_audit_logs_v4_prod';
@@ -412,6 +413,10 @@ export class MasarService {
     });
 
     this.saveSubmissions();
+
+    void approveNationalReport(user).catch((error) => {
+      console.error('Failed to persist national approval', error);
+    });
   }
 
   public static addAuditLog(log: AuditLog): void {
