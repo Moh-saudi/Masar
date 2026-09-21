@@ -1,23 +1,20 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { DailySubmission, UserProfile } from '@/lib/types';
 import { SECTIONS_DEFINITIONS, SAMPLE_GOVERNORATES } from '@/lib/constants';
 import { exportToStyledExcel, exportToExcelFile } from '@/lib/excel-export';
-import { 
-  FileSpreadsheet, 
-  Download, 
-  Printer, 
-  Filter, 
-  Search, 
-  Calendar, 
-  Building2, 
-  Building,
-  CheckCircle2,
-  Share2,
+import {
+  FileSpreadsheet,
+  Download,
+  Printer,
+  Search,
+  RotateCcw,
+  SlidersHorizontal,
+  Rows3,
   Users,
-  ShieldCheck,
-  RotateCcw
+  ArrowLeftRight,
+  ShieldCheck
 } from 'lucide-react';
 
 interface ReportsCenterViewProps {
@@ -27,59 +24,48 @@ interface ReportsCenterViewProps {
 
 export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({
   submissions,
-  user,
 }) => {
-  // حالات الفلاتر
-  const [selectedGov, setSelectedGov] = useState<string>('all');
-  const [selectedDistrict, setSelectedDistrict] = useState<string>('all');
-  const [selectedSection, setSelectedSection] = useState<string>('all');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [selectedGov, setSelectedGov] = useState('all');
+  const [selectedDistrict, setSelectedDistrict] = useState('all');
+  const [selectedSection, setSelectedSection] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // قائمة الإدارات المتاحة للمحافظة المختارة
   const availableDistricts = useMemo(() => {
     if (selectedGov === 'all') {
       return Array.from(new Set(submissions.map(s => s.district_name_ar)));
     }
+
     const govObj = SAMPLE_GOVERNORATES.find(g => g.code === selectedGov);
     if (!govObj) return [];
-    return submissions.filter(s => s.governorate_name_ar === govObj.name_ar).map(s => s.district_name_ar);
+
+    return submissions
+      .filter(s => s.governorate_name_ar === govObj.name_ar)
+      .map(s => s.district_name_ar);
   }, [selectedGov, submissions]);
 
-  // تجهيز صفوف البيانات التفصيلية المفلترة
   const reportRows = useMemo(() => {
     const rows: any[] = [];
 
     submissions.forEach(sub => {
-      // فلترة المحافظة
       if (selectedGov !== 'all') {
         const govObj = SAMPLE_GOVERNORATES.find(g => g.code === selectedGov);
         if (govObj && sub.governorate_name_ar !== govObj.name_ar) return;
       }
 
-      // فلترة الإدارة
-      if (selectedDistrict !== 'all' && sub.district_name_ar !== selectedDistrict) {
-        return;
-      }
+      if (selectedDistrict !== 'all' && sub.district_name_ar !== selectedDistrict) return;
+      if (selectedStatus !== 'all' && sub.status !== selectedStatus) return;
 
-      // فلترة الحالة
-      if (selectedStatus !== 'all' && sub.status !== selectedStatus) {
-        return;
-      }
-
-      // فلترة نص البحث
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
-        const matchesName = sub.district_name_ar.toLowerCase().includes(term) ||
-                            sub.governorate_name_ar.toLowerCase().includes(term);
-        if (!matchesName) return;
+        const matches =
+          sub.district_name_ar.toLowerCase().includes(term) ||
+          sub.governorate_name_ar.toLowerCase().includes(term);
+        if (!matches) return;
       }
 
-      // التكرار على الأقسام
       SECTIONS_DEFINITIONS.forEach(def => {
-        if (selectedSection !== 'all' && def.code !== parseInt(selectedSection)) {
-          return;
-        }
+        if (selectedSection !== 'all' && def.code !== Number(selectedSection)) return;
 
         const sec = sub.sections[def.code] || {
           field_1_value: 0,
@@ -108,9 +94,11 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({
           field2Label: def.field_2_label,
           field3Label: def.field_3_label,
           convRate,
-          status: sub.status === 'APPROVED' ? 'معتمد' : 
-                  sub.status === 'SUBMITTED_LOCKED' ? 'مرفوع للمديرية' : 
-                  sub.status === 'RETURNED' ? 'مُرتجع' : 'مسودة',
+          status:
+            sub.status === 'APPROVED' ? 'معتمد' :
+            sub.status === 'SUBMITTED_LOCKED' ? 'مرفوع للمديرية' :
+            sub.status === 'RETURNED' ? 'مرجع' :
+            'مسودة',
           updatedAt: sub.updated_at ? sub.updated_at.split('T')[1]?.slice(0, 5) : '—',
         });
       });
@@ -119,17 +107,16 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({
     return rows;
   }, [submissions, selectedGov, selectedDistrict, selectedSection, selectedStatus, searchTerm]);
 
-  // إجماليات السجلات المفلترة
   const totals = useMemo(() => {
     let attendees = 0;
     let referrals = 0;
     let larc = 0;
 
-    reportRows.forEach(r => {
-      if (r.sectionCode !== 12) {
-        attendees += r.field1;
-        referrals += r.field2;
-        larc += r.field3;
+    reportRows.forEach(row => {
+      if (row.sectionCode !== 12) {
+        attendees += row.field1;
+        referrals += row.field2;
+        larc += row.field3;
       }
     });
 
@@ -137,22 +124,21 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({
     return { attendees, referrals, larc, avgConvRate };
   }, [reportRows]);
 
-  // تصدير الإكسيل المنسق (.xls)
-  const handleExportStyledExcel = () => {
-    const columns = [
-      { header: 'التاريخ', key: 'date' },
-      { header: 'المحافظة', key: 'governorate' },
-      { header: 'الإدارة الصحية', key: 'district' },
-      { header: 'كود القسم', key: 'sectionCode' },
-      { header: 'القسم التجميعي', key: 'sectionName' },
-      { header: 'البيان 1 (المترددات)', key: 'field1' },
-      { header: 'البيان 2 (المحولات لـ ت.أ)', key: 'field2' },
-      { header: 'البيان 3 (وسائل LARC)', key: 'field3' },
-      { header: 'معدل التحويل %', key: 'convRate' },
-      { header: 'حالة الاعتماد', key: 'status' },
-      { header: 'وقت التسجيل', key: 'updatedAt' },
-    ];
+  const columns = [
+    { header: 'التاريخ', key: 'date' },
+    { header: 'المحافظة', key: 'governorate' },
+    { header: 'الإدارة الصحية', key: 'district' },
+    { header: 'كود القسم', key: 'sectionCode' },
+    { header: 'القسم التجميعي', key: 'sectionName' },
+    { header: 'البيان 1', key: 'field1' },
+    { header: 'البيان 2', key: 'field2' },
+    { header: 'البيان 3', key: 'field3' },
+    { header: 'معدل التحويل %', key: 'convRate' },
+    { header: 'حالة الاعتماد', key: 'status' },
+    { header: 'وقت التسجيل', key: 'updatedAt' },
+  ];
 
+  const handleExportStyledExcel = () => {
     exportToStyledExcel(
       'تقرير_مسار_التفصيلي',
       'منظومة مَسَار - وزارة الصحة والسكان - التقرير الإحصائي التجميعي الشامل',
@@ -161,26 +147,10 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({
     );
   };
 
-  // تصدير CSV
   const handleExportCsv = () => {
-    const columns = [
-      { header: 'التاريخ', key: 'date' },
-      { header: 'المحافظة', key: 'governorate' },
-      { header: 'الإدارة الصحية', key: 'district' },
-      { header: 'كود القسم', key: 'sectionCode' },
-      { header: 'القسم التجميعي', key: 'sectionName' },
-      { header: 'البيان 1', key: 'field1' },
-      { header: 'البيان 2', key: 'field2' },
-      { header: 'البيان 3', key: 'field3' },
-      { header: 'معدل التحويل %', key: 'convRate' },
-      { header: 'حالة الاعتماد', key: 'status' },
-      { header: 'وقت التسجيل', key: 'updatedAt' },
-    ];
-
     exportToExcelFile('masar_detailed_report', columns, reportRows);
   };
 
-  // إعادة ضبط الفلاتر
   const handleResetFilters = () => {
     setSelectedGov('all');
     setSelectedDistrict('all');
@@ -189,276 +159,231 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({
     setSearchTerm('');
   };
 
+  const statusClass = (status: string) =>
+    status === 'معتمد'
+      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+      : status === 'مرفوع للمديرية'
+        ? 'bg-[#eef9f7] border-[#ccebe7] text-[#087f78]'
+        : status === 'مرجع'
+          ? 'bg-rose-50 border-rose-200 text-rose-700'
+          : 'bg-amber-50 border-amber-200 text-amber-700';
+
   return (
-    <div className="space-y-6 animate-in fade-in">
-      
-      {/* 1. ترويسة مركز التقارير والتصدير */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5 text-sky-600" />
-            <h2 className="text-lg font-bold text-slate-900">
-              مركز التقارير التجميعية وتصدير البيانات (Excel Export Center)
-            </h2>
+    <div className="space-y-4">
+      <div className="gov-surface px-5 py-4 sm:px-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <FileSpreadsheet className="w-4 h-4 text-[#087f78]" />
+              <h2 className="text-sm font-extrabold text-[#172033]">مركز التقارير وتصدير البيانات</h2>
+            </div>
+            <p className="text-[10px] text-slate-500 leading-5">
+              إعداد تقارير تفصيلية قابلة للتصفية والطباعة والتصدير حسب النطاق المتاح للمستخدم.
+            </p>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            إعداد واستخراج البيانات الإحصائية التفصيلية لجميع المستويات الإدارية بصيغة إكسيل معتمدة
-          </p>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => window.print()}
-            className="px-3.5 py-2 rounded-lg text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 flex items-center gap-1.5 transition shadow-2xs"
-          >
-            <Printer className="w-3.5 h-3.5 text-slate-500" />
-            <span>طباعة التقرير</span>
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => window.print()}
+              className="h-10 px-3.5 rounded-xl gov-btn-secondary text-[10px] font-extrabold flex items-center gap-2"
+            >
+              <Printer className="w-4 h-4" />
+              طباعة
+            </button>
 
-          <button
-            onClick={handleExportCsv}
-            className="px-3.5 py-2 rounded-lg text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 flex items-center gap-1.5 transition shadow-2xs"
-          >
-            <Download className="w-3.5 h-3.5 text-slate-500" />
-            <span>تصدير CSV</span>
-          </button>
+            <button
+              onClick={handleExportCsv}
+              className="h-10 px-3.5 rounded-xl gov-btn-secondary text-[10px] font-extrabold flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              CSV
+            </button>
 
-          <button
-            onClick={handleExportStyledExcel}
-            className="px-4 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 transition shadow-xs"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>تصدير ملف إكسيل (.XLS) منسق</span>
-          </button>
+            <button
+              onClick={handleExportStyledExcel}
+              className="h-10 px-4 rounded-xl gov-btn-primary text-[10px] font-extrabold flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              تصدير Excel
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* 2. شريط الفلاتر والبحث المتقدم */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
-          
-          {/* فلتر المحافظة */}
-          <div>
-            <label className="block text-slate-500 font-semibold mb-1">المحافظة:</label>
+      <div className="gov-surface p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="w-4 h-4 text-[#087f78]" />
+            <h3 className="text-xs font-extrabold text-[#172033]">تصفية التقرير</h3>
+          </div>
+          <button
+            onClick={handleResetFilters}
+            className="h-8 px-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 text-[9px] font-bold flex items-center gap-1.5 hover:bg-slate-100"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            إعادة الضبط
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+          <label>
+            <span className="block text-[9px] font-bold text-slate-500 mb-1.5">المحافظة</span>
             <select
               value={selectedGov}
-              onChange={(e) => {
+              onChange={e => {
                 setSelectedGov(e.target.value);
                 setSelectedDistrict('all');
               }}
-              className="w-full bg-slate-50 border border-slate-200 text-slate-800 p-2 rounded-lg font-medium focus:outline-none focus:border-sky-500"
+              className="gov-input h-10 px-3 text-[10px]"
             >
               <option value="all">كافة المحافظات</option>
               {SAMPLE_GOVERNORATES.map(gov => (
-                <option key={gov.code} value={gov.code}>
-                  محافظة {gov.name_ar}
-                </option>
+                <option key={gov.code} value={gov.code}>محافظة {gov.name_ar}</option>
               ))}
             </select>
-          </div>
+          </label>
 
-          {/* فلتر الإدارة */}
-          <div>
-            <label className="block text-slate-500 font-semibold mb-1">الإدارة الصحية:</label>
+          <label>
+            <span className="block text-[9px] font-bold text-slate-500 mb-1.5">الإدارة الصحية</span>
             <select
               value={selectedDistrict}
-              onChange={(e) => setSelectedDistrict(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 text-slate-800 p-2 rounded-lg font-medium focus:outline-none focus:border-sky-500"
+              onChange={e => setSelectedDistrict(e.target.value)}
+              className="gov-input h-10 px-3 text-[10px]"
             >
               <option value="all">كافة الإدارات</option>
-              {availableDistricts.map(distName => (
-                <option key={distName} value={distName}>
-                  {distName}
-                </option>
-              ))}
+              {availableDistricts.map(name => <option key={name} value={name}>{name}</option>)}
             </select>
-          </div>
+          </label>
 
-          {/* فلتر القسم التجميعي */}
-          <div>
-            <label className="block text-slate-500 font-semibold mb-1">القسم التجميعي:</label>
+          <label>
+            <span className="block text-[9px] font-bold text-slate-500 mb-1.5">القسم</span>
             <select
               value={selectedSection}
-              onChange={(e) => setSelectedSection(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 text-slate-800 p-2 rounded-lg font-medium focus:outline-none focus:border-sky-500"
+              onChange={e => setSelectedSection(e.target.value)}
+              className="gov-input h-10 px-3 text-[10px]"
             >
               <option value="all">كافة الأقسام الـ 12</option>
               {SECTIONS_DEFINITIONS.map(def => (
-                <option key={def.code} value={def.code}>
-                  {def.code}. {def.name_ar}
-                </option>
+                <option key={def.code} value={def.code}>{def.code}. {def.name_ar}</option>
               ))}
             </select>
-          </div>
+          </label>
 
-          {/* فلتر حالة الاعتماد */}
-          <div>
-            <label className="block text-slate-500 font-semibold mb-1">حالة البيان:</label>
+          <label>
+            <span className="block text-[9px] font-bold text-slate-500 mb-1.5">حالة البيان</span>
             <select
               value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 text-slate-800 p-2 rounded-lg font-medium focus:outline-none focus:border-sky-500"
+              onChange={e => setSelectedStatus(e.target.value)}
+              className="gov-input h-10 px-3 text-[10px]"
             >
               <option value="all">كافة الحالات</option>
-              <option value="APPROVED">معتمد فقط</option>
+              <option value="APPROVED">معتمد</option>
               <option value="SUBMITTED_LOCKED">مرفوع للمديرية</option>
-              <option value="RETURNED">مُرتجع للتصحيح</option>
+              <option value="RETURNED">مرجع للتصحيح</option>
               <option value="DRAFT">مسودة</option>
             </select>
-          </div>
+          </label>
 
-          {/* البحث بالاسم */}
-          <div>
-            <label className="block text-slate-500 font-semibold mb-1">بحث بالاسم:</label>
+          <label>
+            <span className="block text-[9px] font-bold text-slate-500 mb-1.5">بحث</span>
             <div className="relative">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="ابحث عن إدارة أو محافظة..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-800 p-2 pr-7 rounded-lg font-medium focus:outline-none focus:border-sky-500"
+                onChange={e => setSearchTerm(e.target.value)}
+                placeholder="إدارة أو محافظة..."
+                className="gov-input h-10 pr-9 pl-3 text-[10px]"
               />
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5" />
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: 'السجلات المستخرجة', value: reportRows.length, icon: <Rows3 className="w-4 h-4 text-[#087f78]" /> },
+          { label: 'إجمالي المترددات', value: totals.attendees, icon: <Users className="w-4 h-4 text-sky-600" /> },
+          { label: 'التحويلات', value: totals.referrals, icon: <ArrowLeftRight className="w-4 h-4 text-indigo-600" /> },
+          { label: 'متوسط التحويل', value: `${totals.avgConvRate}%`, icon: <ShieldCheck className="w-4 h-4 text-emerald-600" /> },
+        ].map((item, index) => (
+          <div key={index} className="gov-kpi">
+            <div className="flex items-center gap-2 text-[9px] text-slate-500 mb-1.5">
+              {item.icon}
+              {item.label}
+            </div>
+            <div className="text-lg font-extrabold text-[#172033] tabular-nums">
+              {typeof item.value === 'number' ? item.value.toLocaleString('en-US') : item.value}
             </div>
           </div>
+        ))}
+      </div>
 
-          {/* زر إعادة الضبط */}
-          <div className="flex items-end">
-            <button
-              onClick={handleResetFilters}
-              className="w-full py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold flex items-center justify-center gap-1.5 transition"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>إلغاء التصفية</span>
-            </button>
+      <div className="gov-surface overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h3 className="text-xs font-extrabold text-[#172033]">البيانات التفصيلية</h3>
+            <p className="text-[9px] text-slate-400 mt-1">النتائج الحالية طبقًا لخيارات التصفية.</p>
           </div>
-
-        </div>
-      </div>
-
-      {/* 3. شريط ملخص نتائج التقرير */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-xs">
-          <span className="text-[11px] text-slate-400 block mb-0.5">عدد السجلات المستخرجة</span>
-          <span className="text-xl font-bold font-mono text-slate-900">
-            {reportRows.length.toLocaleString('en-US')} سجل
-          </span>
+          <span className="text-[9px] text-slate-400 tabular-nums">{reportRows.length} صف</span>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-xs">
-          <span className="text-[11px] text-slate-400 block mb-0.5">إجمالي المترددات بالتقرير</span>
-          <span className="text-xl font-bold font-mono text-sky-700">
-            {totals.attendees.toLocaleString('en-US')}
-          </span>
-        </div>
-
-        <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-xs">
-          <span className="text-[11px] text-slate-400 block mb-0.5">المحولات لتنظيم الأسرة</span>
-          <span className="text-xl font-bold font-mono text-indigo-700">
-            {totals.referrals.toLocaleString('en-US')}
-          </span>
-        </div>
-
-        <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-xs">
-          <span className="text-[11px] text-slate-400 block mb-0.5">متوسط معدل التحويل</span>
-          <span className="text-xl font-bold font-mono text-emerald-700">
-            {totals.avgConvRate}%
-          </span>
-        </div>
-      </div>
-
-      {/* 4. جدول التقرير التفصيلي المتوافق مع الإكسيل */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-slate-800">
-            جدول البيانات التفصيلي المستخرج
-          </h3>
-          <span className="text-xs text-slate-400">
-            جاهز للتصدير والتنزيل الفوري
-          </span>
-        </div>
-
-        <div className="overflow-x-auto max-h-[550px] overflow-y-auto">
-          <table className="w-full text-right text-xs">
-            <thead className="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold text-[11px] sticky top-0 z-10 shadow-2xs">
+        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+          <table className="w-full min-w-[1050px] text-right">
+            <thead className="sticky top-0 z-10 bg-[#f7f9fb] border-b border-slate-200 text-[9px] text-slate-500">
               <tr>
-                <th className="p-3 w-12 text-center">م</th>
-                <th className="p-3">المحافظة</th>
-                <th className="p-3">الإدارة الصحية</th>
-                <th className="p-3">القسم التجميعي</th>
-                <th className="p-3 text-center">المترددات (1)</th>
-                <th className="p-3 text-center">المحولات (2)</th>
-                <th className="p-3 text-center">LARC (3)</th>
-                <th className="p-3 text-center">معدل التحويل</th>
-                <th className="p-3 text-center">الحالة</th>
-                <th className="p-3 text-center">التاريخ</th>
+                <th className="px-3 py-3 font-extrabold text-center w-12">م</th>
+                <th className="px-3 py-3 font-extrabold">المحافظة</th>
+                <th className="px-3 py-3 font-extrabold">الإدارة الصحية</th>
+                <th className="px-3 py-3 font-extrabold">القسم</th>
+                <th className="px-3 py-3 font-extrabold text-center">القيمة 1</th>
+                <th className="px-3 py-3 font-extrabold text-center">القيمة 2</th>
+                <th className="px-3 py-3 font-extrabold text-center">القيمة 3</th>
+                <th className="px-3 py-3 font-extrabold text-center">التحويل</th>
+                <th className="px-3 py-3 font-extrabold text-center">الحالة</th>
+                <th className="px-3 py-3 font-extrabold text-center">التاريخ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-800">
-              {reportRows.length > 0 ? (
-                reportRows.map((row, idx) => (
-                  <tr key={row.id} className="hover:bg-slate-50/70 transition">
-                    <td className="p-2.5 text-center font-bold text-slate-400 font-mono">
-                      {idx + 1}
-                    </td>
-                    <td className="p-2.5 font-medium text-slate-700">
-                      {row.governorate}
-                    </td>
-                    <td className="p-2.5 font-bold text-slate-900">
-                      {row.district}
-                    </td>
-                    <td className="p-2.5 font-medium text-slate-800">
-                      <span className="font-mono text-slate-400 text-[10px] ml-1">({row.sectionCode})</span>
-                      <span>{row.sectionName}</span>
-                    </td>
-                    <td className="p-2.5 text-center font-bold font-mono">
-                      {row.field1.toLocaleString('en-US')}
-                    </td>
-                    <td className="p-2.5 text-center font-bold font-mono text-indigo-700">
-                      {row.field2.toLocaleString('en-US')}
-                    </td>
-                    <td className="p-2.5 text-center font-bold font-mono text-emerald-700">
-                      {row.field3.toLocaleString('en-US')}
-                    </td>
-                    <td className="p-2.5 text-center font-mono">
-                      {row.sectionCode !== 12 ? (
-                        <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                          row.convRate >= 40 ? 'bg-emerald-100 text-emerald-800' :
-                          row.convRate > 0 ? 'bg-sky-100 text-sky-800' : 'bg-slate-100 text-slate-600'
-                        }`}>
-                          {row.convRate}%
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 text-[10px]">قسم لوالب</span>
-                      )}
-                    </td>
-                    <td className="p-2.5 text-center">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                        row.status === 'معتمد' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                        row.status === 'مرفوع للمديرية' ? 'bg-sky-50 text-sky-700 border border-sky-200' :
-                        row.status === 'مُرتجع' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
-                        'bg-amber-50 text-amber-700 border border-amber-200'
-                      }`}>
-                        {row.status}
-                      </span>
-                    </td>
-                    <td className="p-2.5 text-center font-mono text-slate-500 text-[11px]">
-                      {row.date}
-                    </td>
-                  </tr>
-                ))
-              ) : (
+            <tbody className="divide-y divide-slate-100">
+              {reportRows.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="p-8 text-center text-slate-400">
-                    لا توجد بيانات مطابقة لخيارات التصفية المحددة.
+                  <td colSpan={10} className="py-14 text-center text-[10px] text-slate-400">
+                    لا توجد بيانات مطابقة لخيارات التصفية الحالية.
                   </td>
                 </tr>
               )}
+
+              {reportRows.map((row, idx) => (
+                <tr key={row.id} className="hover:bg-[#fbfcfd] transition text-[10px]">
+                  <td className="px-3 py-3 text-center text-slate-400 tabular-nums">{idx + 1}</td>
+                  <td className="px-3 py-3 text-slate-600">{row.governorate}</td>
+                  <td className="px-3 py-3 font-extrabold text-[#172033]">{row.district}</td>
+                  <td className="px-3 py-3">
+                    <div className="font-bold text-slate-700">{row.sectionName}</div>
+                    <div className="text-[8px] text-slate-400 mt-0.5 tabular-nums">قسم {row.sectionCode}</div>
+                  </td>
+                  <td className="px-3 py-3 text-center font-extrabold tabular-nums">{row.field1.toLocaleString('en-US')}</td>
+                  <td className="px-3 py-3 text-center font-extrabold text-indigo-700 tabular-nums">{row.field2.toLocaleString('en-US')}</td>
+                  <td className="px-3 py-3 text-center font-extrabold text-emerald-700 tabular-nums">{row.field3.toLocaleString('en-US')}</td>
+                  <td className="px-3 py-3 text-center">
+                    {row.sectionCode === 12 ? (
+                      <span className="text-[8px] text-slate-400">حصيلة LARC</span>
+                    ) : (
+                      <span className="font-extrabold text-[#087f78] tabular-nums">{row.convRate}%</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-center">
+                    <span className={`inline-flex px-2 py-1 rounded-lg border text-[8px] font-extrabold ${statusClass(row.status)}`}>
+                      {row.status}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 text-center text-slate-500 tabular-nums">{row.date}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       </div>
-
     </div>
   );
 };
