@@ -12,6 +12,7 @@ import {
   SECTION_GROUPS 
 } from '@/lib/constants';
 import { MasarService } from '@/lib/masar-service';
+import { persistDailySubmission, writeAuditEvent } from '@/lib/services/submissions-client';
 import { 
   CheckCircle2, 
   Save, 
@@ -112,7 +113,7 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
   }, [submission]);
 
   // حفظ قسم مفرد
-  const handleSaveCurrentSection = () => {
+  const handleSaveCurrentSection = async () => {
     if (isLocked) return;
 
     try {
@@ -127,16 +128,18 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
         },
         user
       );
-      onSubmissionUpdated({ ...updatedSub });
+      const persisted = await persistDailySubmission(updatedSub, user);
+      onSubmissionUpdated({ ...persisted });
       setSaveMessage('تم الحفظ بنجاح وتحديث الإحصائية');
       setTimeout(() => setSaveMessage(null), 2000);
+      return persisted;
     } catch (err: any) {
       alert(err.message || 'حدث خطأ أثناء الحفظ');
     }
   };
 
   // حفظ الجدول السريع بالكامل
-  const handleSaveMatrixBulk = () => {
+  const handleSaveMatrixBulk = async () => {
     if (isLocked) return;
 
     try {
@@ -151,9 +154,11 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
       });
 
       const updatedSub = MasarService.updateAllSectionsBulk(submission.district_id, payload, user);
-      onSubmissionUpdated({ ...updatedSub });
+      const persisted = await persistDailySubmission(updatedSub, user);
+      onSubmissionUpdated({ ...persisted });
       setSaveMessage('تم حفظ وتحديث كافة الأقسام الـ 12 بنجاح!');
       setTimeout(() => setSaveMessage(null), 2500);
+      return persisted;
     } catch (err: any) {
       alert(err.message || 'حدث خطأ أثناء الحفظ');
     }
@@ -173,7 +178,7 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
     }
   };
 
-  const handleSubmitDailyReport = () => {
+  const handleSubmitDailyReport = async () => {
     if (isLocked) return;
 
     const confirmed = window.confirm(
@@ -183,12 +188,26 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
 
     try {
       if (entryMode === 'matrix') {
-        handleSaveMatrixBulk();
+        await handleSaveMatrixBulk();
       } else {
-        handleSaveCurrentSection();
+        await handleSaveCurrentSection();
       }
+
       const updatedSub = MasarService.submitDistrictDailyReport(submission.district_id, user);
-      onSubmissionUpdated({ ...updatedSub });
+      const persisted = await persistDailySubmission(updatedSub, user);
+      await writeAuditEvent({
+        user,
+        action: 'DISTRICT_SUBMIT',
+        entity: 'daily_submissions',
+        entityId: persisted.id,
+        metadata: {
+          actor_name: user.full_name,
+          actor_role: user.role_title_ar,
+          description: `رفع البيان الإجمالي لإدارة (${persisted.district_name_ar}) للمراجعة`,
+          target_district: persisted.district_name_ar,
+        },
+      });
+      onSubmissionUpdated({ ...persisted });
       alert('تم رفع البيان الإجمالي التجميعي بنجاح إلى مديرية الشئون الصحية!');
     } catch (err: any) {
       alert(err.message || 'فشل إرسال البيان');
