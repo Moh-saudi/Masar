@@ -22,6 +22,7 @@ export const OverrideRequestModal: React.FC<OverrideRequestModalProps> = ({
 }) => {
   const [reason, setReason] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [operationError, setOperationError] = useState<{ title: string; message: string } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
