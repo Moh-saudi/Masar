@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { useAuth, INITIAL_OFFICIAL_ACCOUNTS } from '@/lib/auth-context';
+import { useAuth } from '@/lib/auth-context';
 import { 
   ShieldCheck, 
   Eye, 
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 
 export const LoginView: React.FC = () => {
+  const { login } = useAuth();
   const [identifier, setIdentifier] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -30,17 +31,22 @@ export const LoginView: React.FC = () => {
     setError(null);
     setLoading(true);
 
-    // المنظومة تحت التطوير - منع الدخول حالياً وإظهار رسالة التوجيه للدعم الفني
-    setTimeout(() => {
+    try {
+      const result = await login(identifier.trim(), password);
+      if (!result.success) {
+        setError(result.error || 'تعذر تسجيل الدخول. تحقق من بيانات الاعتماد وحاول مرة أخرى.');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'تعذر تسجيل الدخول. حاول مرة أخرى.');
+    } finally {
       setLoading(false);
-      setError('المنظومة تحت التطوير والتحديث حالياً. رجاء التواصل مع فريق الدعم الفني بقطاع الرعاية الصحية وتنمية الأسرة.');
-    }, 400);
+    }
   };
 
   const handleSelectQuickAccount = (accIdentifier: string) => {
     setIdentifier(accIdentifier);
-    setPassword('Masar@2026');
-    setError('المنظومة تحت التطوير والتحديث حالياً. رجاء التواصل مع فريق الدعم الفني بقطاع الرعاية الصحية وتنمية الأسرة.');
+    setPassword('');
+    setError(null);
   };
 
   const handleOpenPasswordResetModal = () => {
