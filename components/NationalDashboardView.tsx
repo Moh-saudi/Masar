@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { DailySubmission, UserProfile, TimeLockState } from '@/lib/types';
 import { approveNationalReport } from '@/lib/services/submissions-client';
 import { OperationFeedbackDialog } from './OperationFeedbackDialog';
+import { ConfirmationDialog } from './ConfirmationDialog';
 import { 
   Users, 
   HeartHandshake, 
@@ -72,6 +73,7 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
 
   const [suiteTab, setSuiteTab] = useState<'macro' | 'tactical' | 'deep_dive'>(defaultTab);
   const [operationFeedback, setOperationFeedback] = useState<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
+  const [showApprovalConfirm, setShowApprovalConfirm] = useState(false);
 
   // عداد تنازلي لموعد إغلاق الاعتماد القومي النهائي (الساعة 10:00 مساءً)
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; isPassed: boolean }>({
@@ -174,11 +176,6 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
   ];
 
   const handleNationalApproval = async () => {
-    const confirmed = window.confirm(
-      'تأكيد الاعتماد القومي النهائي لتقرير اليوم لديوان معالي الوزير؟'
-    );
-    if (!confirmed) return;
-
     try {
       await approveNationalReport(user);
       onDataChanged();
@@ -247,7 +244,7 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
 
           {(user.role === 'sector_head' || user.role === 'super_admin') && (
             <button
-              onClick={handleNationalApproval}
+              onClick={() => setShowApprovalConfirm(true)}
               className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 transition shadow-xs cursor-pointer"
             >
               <CheckCircle className="w-3.5 h-3.5" />
@@ -557,6 +554,19 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
           </div>
         </div>
       )}
+
+      <ConfirmationDialog
+        open={showApprovalConfirm}
+        title="الاعتماد القومي النهائي"
+        message="سيتم اعتماد التقرير القومي النهائي وإقفال اليوم الإحصائي للجمهورية. هل تريد المتابعة؟"
+        confirmLabel="اعتماد التقرير"
+        tone="success"
+        onConfirm={async () => {
+          setShowApprovalConfirm(false);
+          await handleNationalApproval();
+        }}
+        onCancel={() => setShowApprovalConfirm(false)}
+      />
 
       <OperationFeedbackDialog
         open={Boolean(operationFeedback)}
