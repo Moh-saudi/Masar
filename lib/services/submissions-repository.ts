@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/auth/server'
+import { createServerSupabaseClient } from '@/lib/auth/server'
 import { cachedRequest, invalidateCache } from './request-cache'
 import type { DailySubmission } from '@/lib/types'
 
@@ -6,7 +6,7 @@ const CACHE_KEY = 'daily-submissions'
 
 export async function getSubmissionsFromDatabase() {
   return cachedRequest(CACHE_KEY, async () => {
-    const supabase = await createServerClient()
+    const supabase = await createServerSupabaseClient()
 
     const { data, error } = await supabase
       .from('daily_submissions')
@@ -19,7 +19,7 @@ export async function getSubmissionsFromDatabase() {
 }
 
 export async function saveSubmissionToDatabase(submission: Partial<DailySubmission>) {
-  const supabase = await createServerClient()
+  const supabase = await createServerSupabaseClient()
 
   const { data, error } = await supabase
     .from('daily_submissions')
