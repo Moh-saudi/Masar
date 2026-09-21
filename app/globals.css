@@ -6,47 +6,202 @@
 
 :root {
   --font-arabic: 'Almarai', system-ui, -apple-system, sans-serif;
+  --gov-ink: #172033;
+  --gov-muted: #69768d;
+  --gov-line: #dfe6ee;
+  --gov-line-strong: #cbd6e2;
+  --gov-canvas: #f5f8fb;
+  --gov-surface: #ffffff;
+  --gov-soft: #f8fafc;
+  --gov-primary: #087f78;
+  --gov-primary-dark: #066963;
+  --gov-primary-soft: #eaf9f7;
+  --gov-navy: #18334f;
+  --gov-warning: #b7791f;
+  --gov-warning-soft: #fff8e7;
+  --gov-danger: #b4233d;
+  --gov-danger-soft: #fff1f3;
+  --gov-success: #147d64;
+  --gov-success-soft: #eaf8f3;
 }
 
 * {
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   font-family: var(--font-arabic);
   direction: rtl;
   text-align: right;
-  background-color: #F8FAFC;
-  color: #0F172A;
+  background: var(--gov-canvas);
+  color: var(--gov-ink);
   min-height: 100vh;
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
   letter-spacing: normal !important;
-  /* فرض الأرقام الإنجليزية (Western Arabic Numerals) والمحاذاة الموحدة */
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: "tnum" 1, "lnum" 1;
 }
 
-/* Custom Scrollbars */
+body {
+  background-image:
+    radial-gradient(circle at 80% -10%, rgba(8, 127, 120, 0.055), transparent 28rem),
+    linear-gradient(180deg, #f9fbfd 0%, #f4f7fa 45%, #f6f8fb 100%);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: #bcece7;
+  color: #123;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #F1F5F9;
+  background: #eef2f6;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: #bcc8d5;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: #95a6b8;
 }
 
 .tabular-nums {
   font-variant-numeric: tabular-nums lining-nums;
+}
+
+.gov-shell {
+  width: 100%;
+  max-width: 1540px;
+  margin-inline: auto;
+}
+
+.gov-surface {
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid var(--gov-line);
+  border-radius: 18px;
+  box-shadow: 0 8px 30px rgba(23, 32, 51, 0.045);
+}
+
+.gov-surface-flat {
+  background: #fff;
+  border: 1px solid var(--gov-line);
+  border-radius: 14px;
+}
+
+.gov-section-title {
+  color: var(--gov-ink);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.gov-muted {
+  color: var(--gov-muted);
+}
+
+.gov-input {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--gov-line-strong);
+  border-radius: 11px;
+  background: #fff;
+  color: var(--gov-ink);
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.gov-input:hover {
+  border-color: #aebccc;
+}
+
+.gov-input:focus {
+  border-color: var(--gov-primary);
+  box-shadow: 0 0 0 3px rgba(8, 127, 120, 0.11);
+}
+
+.gov-input:disabled {
+  background: #f3f6f8;
+  color: #8895a5;
+  cursor: not-allowed;
+}
+
+.gov-btn-primary {
+  background: var(--gov-primary);
+  color: #fff;
+  border: 1px solid var(--gov-primary);
+  transition: all 160ms ease;
+}
+
+.gov-btn-primary:hover:not(:disabled) {
+  background: var(--gov-primary-dark);
+  border-color: var(--gov-primary-dark);
+  transform: translateY(-1px);
+}
+
+.gov-btn-secondary {
+  background: #fff;
+  color: var(--gov-ink);
+  border: 1px solid var(--gov-line-strong);
+  transition: all 160ms ease;
+}
+
+.gov-btn-secondary:hover:not(:disabled) {
+  border-color: #a6b6c7;
+  background: #f9fbfc;
+}
+
+.gov-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border-radius: 11px;
+  padding: 10px 12px;
+  color: #56657a;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 160ms ease;
+}
+
+.gov-nav-item:hover {
+  background: #f3f7f9;
+  color: var(--gov-ink);
+}
+
+.gov-nav-item[data-active='true'] {
+  color: var(--gov-primary-dark);
+  background: var(--gov-primary-soft);
+  box-shadow: inset -3px 0 0 var(--gov-primary);
+}
+
+.gov-kpi {
+  background: #fff;
+  border: 1px solid var(--gov-line);
+  border-radius: 13px;
+  padding: 12px 14px;
+}
+
+@media (max-width: 1023px) {
+  .gov-surface {
+    border-radius: 14px;
+  }
 }
