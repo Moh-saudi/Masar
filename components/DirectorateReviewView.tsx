@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { DailySubmission, UserProfile, TimeLockState } from '@/lib/types';
 import { SECTIONS_DEFINITIONS } from '@/lib/constants';
 import { MasarService } from '@/lib/masar-service';
+import { persistDailySubmission, writeAuditEvent } from '@/lib/services/submissions-client';
 import { 
   CheckCircle2, 
   RotateCcw, 
@@ -40,14 +41,27 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
     s => s.district_name_ar.includes(searchQuery)
   );
 
-  const handleReturnSubmission = (districtId: string) => {
+  const handleReturnSubmission = async (districtId: string) => {
     if (!returnReason.trim()) {
       alert('يرجى كتابة سبب إرجاع البيان بوضوح للإدارة الصحية.');
       return;
     }
 
     try {
-      MasarService.returnSubmission(districtId, returnReason.trim(), user);
+      const updated = MasarService.returnSubmission(districtId, returnReason.trim(), user);
+      const persisted = await persistDailySubmission(updated, user);
+      await writeAuditEvent({
+        user,
+        action: 'SUBMISSION_RETURNED',
+        entity: 'daily_submissions',
+        entityId: persisted.id,
+        metadata: {
+          actor_name: user.full_name,
+          actor_role: user.role_title_ar,
+          description: `إرجاع بيان إدارة (${persisted.district_name_ar}) للتعديل - السبب: ${returnReason.trim()}`,
+          target_district: persisted.district_name_ar,
+        },
+      });
       setIsReturning(false);
       setReturnReason('');
       onDataChanged();
@@ -57,14 +71,27 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
     }
   };
 
-  const handleGrantOverride = (districtId: string) => {
+  const handleGrantOverride = async (districtId: string) => {
     const confirmed = window.confirm(
       'تأكيد منح فتح استثنائي مؤقت لمدة (30 دقيقة) للإدارة الصحية؟'
     );
     if (!confirmed) return;
 
     try {
-      MasarService.grantOverride(districtId, user);
+      const updated = MasarService.grantOverride(districtId, user);
+      const persisted = await persistDailySubmission(updated, user);
+      await writeAuditEvent({
+        user,
+        action: 'OVERRIDE_GRANTED',
+        entity: 'daily_submissions',
+        entityId: persisted.id,
+        metadata: {
+          actor_name: user.full_name,
+          actor_role: user.role_title_ar,
+          description: `منح فتح استثنائي لمدة 30 دقيقة لإدارة (${persisted.district_name_ar})`,
+          target_district: persisted.district_name_ar,
+        },
+      });
       onDataChanged();
       alert('تم منح فتح استثنائي للإدارة لمدة 30 دقيقة.');
     } catch (err: any) {
@@ -72,9 +99,22 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
     }
   };
 
-  const handleApproveSubmission = (districtId: string) => {
+  const handleApproveSubmission = async (districtId: string) => {
     try {
-      MasarService.approveDirectorateSubmission(districtId, user);
+      const updated = MasarService.approveDirectorateSubmission(districtId, user);
+      const persisted = await persistDailySubmission(updated, user);
+      await writeAuditEvent({
+        user,
+        action: 'DIRECTORATE_APPROVE',
+        entity: 'daily_submissions',
+        entityId: persisted.id,
+        metadata: {
+          actor_name: user.full_name,
+          actor_role: user.role_title_ar,
+          description: `اعتماد بيان إدارة (${persisted.district_name_ar}) من المديرية`,
+          target_district: persisted.district_name_ar,
+        },
+      });
       onDataChanged();
       alert('تم اعتماد بيان الإدارة الصحية بنجاح.');
     } catch (err: any) {
