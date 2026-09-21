@@ -5,6 +5,7 @@ import { UserProfile, HealthFacility, GeneralDirectorate, FacilityType } from '@
 import { SAMPLE_GOVERNORATES } from '@/lib/constants';
 import { exportToStyledExcel } from '@/lib/excel-export';
 import { BulkDistrictsUploaderModal } from './BulkDistrictsUploaderModal';
+import { OperationFeedbackDialog } from './OperationFeedbackDialog';
 import { 
   Building2, 
   Building, 
@@ -231,6 +232,7 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
   const [showAddDistrictModal, setShowAddDistrictModal] = useState<boolean>(false);
   const [showAddGeneralDirectorateModal, setShowAddGeneralDirectorateModal] = useState<boolean>(false);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState<boolean>(false);
+  const [operationFeedback, setOperationFeedback] = useState<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
   const [importSuccessAlert, setImportSuccessAlert] = useState<{
     count: number;
     govsCount: number;
@@ -423,7 +425,11 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
     setFacilities(prev => [newFacility, ...prev]);
     setShowAddFacilityModal(false);
     setNewFacName('');
-    alert(`تمت إضافة المنشأة الصحية: (${newFacility.name_ar}) بنجاح.`);
+    setOperationFeedback({
+      type: 'success',
+      title: 'تمت إضافة المنشأة الصحية',
+      message: `تمت إضافة المنشأة الصحية (${newFacility.name_ar}) إلى الهيكل التنظيمي بنجاح.`,
+    });
   };
 
   // إضافة إدارة عامة بديوان الوزارة
@@ -446,7 +452,11 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
     setNewGdName('');
     setNewGdCode('');
     setNewGdHead('');
-    alert(`تم استحداث الإدارة العامة: (${newGd.name_ar}) بالهيكل التنظيمي للوزارة بنجاح.`);
+    setOperationFeedback({
+      type: 'success',
+      title: 'تم استحداث الإدارة العامة',
+      message: `تمت إضافة الإدارة العامة (${newGd.name_ar}) إلى الهيكل التنظيمي للوزارة بنجاح.`,
+    });
   };
 
   // تصفية المنشآت
@@ -1130,6 +1140,14 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
         isOpen={showBulkUploadModal}
         onClose={() => setShowBulkUploadModal(false)}
         onDistrictsImported={handleDistrictsImported}
+      />
+
+      <OperationFeedbackDialog
+        open={Boolean(operationFeedback)}
+        type={operationFeedback?.type || 'success'}
+        title={operationFeedback?.title || 'تمت العملية'}
+        message={operationFeedback?.message || ''}
+        onClose={() => setOperationFeedback(null)}
       />
 
     </div>
