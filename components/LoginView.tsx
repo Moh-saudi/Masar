@@ -7,13 +7,14 @@ import {
   ShieldCheck,
   Eye,
   EyeOff,
-  AlertCircle,
   Headphones,
   X,
   LockKeyhole,
   UserRound,
-  Landmark
+  Landmark,
+  Phone
 } from 'lucide-react';
+import { SystemErrorNotice, SUPPORT_PHONE } from './SystemErrorNotice';
 
 export const LoginView: React.FC = () => {
   const { login } = useAuth();
@@ -33,10 +34,10 @@ export const LoginView: React.FC = () => {
     try {
       const result = await login(identifier.trim(), password);
       if (!result.success) {
-        setError(result.error || 'تعذر تسجيل الدخول. تحقق من بيانات الاعتماد وحاول مرة أخرى.');
+        setError('LOGIN_FAILED');
       }
-    } catch (err: any) {
-      setError(err?.message || 'تعذر تسجيل الدخول. حاول مرة أخرى.');
+    } catch {
+      setError('SYSTEM_ERROR');
     } finally {
       setLoading(false);
     }
@@ -117,9 +118,17 @@ export const LoginView: React.FC = () => {
             </div>
 
             {error && (
-              <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 flex items-start gap-2.5">
-                <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 flex-shrink-0" />
-                <div className="text-[10px] text-rose-800 leading-5">{error}</div>
+              <div className="mb-4">
+                <SystemErrorNotice
+                  compact
+                  title={error === 'LOGIN_FAILED' ? 'تعذر تسجيل الدخول' : 'حدث خطأ أثناء الاتصال بالمنظومة'}
+                  message={
+                    error === 'LOGIN_FAILED'
+                      ? 'بيانات الدخول غير صحيحة أو الحساب غير متاح حاليًا. تحقق من البيانات وحاول مرة أخرى، وإذا استمرت المشكلة تواصل مع الدعم الفني.'
+                      : 'تعذر إتمام الاتصال بالمنظومة في الوقت الحالي. أعد المحاولة، وإذا استمرت المشكلة تواصل مع الدعم الفني.'
+                  }
+                  onRetry={() => setError(null)}
+                />
               </div>
             )}
 
@@ -234,10 +243,19 @@ export const LoginView: React.FC = () => {
                 <div className="flex items-start gap-2.5">
                   <ShieldCheck className="w-4 h-4 text-[#087f78] mt-0.5" />
                   <p className="text-[10px] text-slate-600 leading-6">
-                    لإعادة تعيين كلمة المرور أو استعادة الحساب، تواصل مع مسؤول النظام أو الدعم الفني المعتمد في الجهة التابعة لك حتى يتم التحقق من الهوية والنطاق الإداري.
+                    لإعادة تعيين كلمة المرور أو استعادة الحساب، تواصل مع الدعم الفني لمنظومة «مَسَار».
                   </p>
                 </div>
               </div>
+
+              <a
+                href={`tel:${SUPPORT_PHONE}`}
+                className="w-full h-11 rounded-xl gov-btn-primary text-[11px] font-extrabold flex items-center justify-center gap-2"
+              >
+                <Phone className="w-4 h-4" />
+                <span>التواصل مع الدعم الفني</span>
+                <span dir="ltr" className="tabular-nums">{SUPPORT_PHONE}</span>
+              </a>
 
               <button
                 onClick={() => setShowSupportModal(false)}
