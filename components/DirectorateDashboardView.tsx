@@ -223,13 +223,13 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in">
+    <div className="space-y-4">
       
       {/* 1. ترويسة لوحة مؤشرات المديرية والمحافظة والعداد التنازلي */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <div className="gov-surface p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-sky-600" />
+            <Building2 className="w-5 h-5 text-[#087f78]" />
             <h2 className="text-lg font-bold text-slate-900">
               لوحة مؤشرات مديرية الشئون الصحية بمحافظة {activeGov.name_ar}
             </h2>
@@ -271,7 +271,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
             <select
               value={selectedGovCode}
               onChange={(e) => setSelectedGovCode(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-slate-800 py-1.5 px-3 rounded-xl text-xs font-semibold focus:outline-none focus:border-sky-500"
+              className="bg-slate-50 border border-slate-200 text-slate-800 py-1.5 px-3 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#087f78]"
             >
               {SAMPLE_GOVERNORATES.map(gov => (
                 <option key={gov.code} value={gov.code}>
@@ -286,7 +286,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
               onClick={onNavigateToReview}
               className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 flex items-center gap-1.5 shadow-2xs transition"
             >
-              <FileCheck2 className="w-3.5 h-3.5 text-sky-600" />
+              <FileCheck2 className="w-3.5 h-3.5 text-[#087f78]" />
               <span>تدقيق الإدارات</span>
             </button>
           )}
@@ -304,10 +304,10 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
       {/* 2. مؤشرات الأداء الإجمالية للمحافظة */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+        <div className="gov-surface p-4 shadow-xs">
           <div className="flex items-center justify-between text-slate-500 mb-1">
             <span className="text-xs font-semibold">المترددات بالمحافظة</span>
-            <Users className="w-4 h-4 text-sky-600" />
+            <Users className="w-4 h-4 text-[#087f78]" />
           </div>
           <div className="text-2xl font-black font-mono text-slate-900">
             {govTotalAttendees.toLocaleString('en-US')}
@@ -315,7 +315,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
           <span className="text-[11px] text-slate-400 mt-1 block">في كافة الإدارات الصحية</span>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+        <div className="gov-surface p-4 shadow-xs">
           <div className="flex items-center justify-between text-slate-500 mb-1">
             <span className="text-xs font-semibold">المحولات لتنظيم الأسرة</span>
             <Share2 className="w-4 h-4 text-indigo-600" />
@@ -328,7 +328,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
           </span>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+        <div className="gov-surface p-4 shadow-xs">
           <div className="flex items-center justify-between text-slate-500 mb-1">
             <span className="text-xs font-semibold">إجمالي وسائل LARC</span>
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
@@ -339,7 +339,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
           <span className="text-[11px] text-slate-400 mt-1 block">حالة حماية طويلة المدى</span>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+        <div className="gov-surface p-4 shadow-xs">
           <div className="flex items-center justify-between text-slate-500 mb-1">
             <span className="text-xs font-semibold">الإدارات المعتمدة</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -352,7 +352,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
           </span>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+        <div className="gov-surface p-4 shadow-xs">
           <div className="flex items-center justify-between text-slate-500 mb-1">
             <span className="text-xs font-semibold">بيانات قيد الإجراء</span>
             <AlertTriangle className="w-4 h-4 text-amber-600" />
@@ -371,18 +371,18 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* جراف المقارنة البينية لآخر 4 أسابيع */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+        <div className="lg:col-span-2 gov-surface p-5 shadow-xs">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                <TrendingUp className="w-4 h-4 text-sky-600" />
+                <TrendingUp className="w-4 h-4 text-[#087f78]" />
                 <span>جراف المقارنة البينية (Multi-Line Benchmarking Trend) للإدارات</span>
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
                 مقارنة تطور أداء إدارات المحافظة خلال الأسابيع الأربعة الأخيرة لرصد فجوات الأداء والتحسن
               </p>
             </div>
-            <span className="text-xs px-2.5 py-1 rounded-lg bg-sky-50 text-sky-800 font-bold border border-sky-200">
+            <span className="text-xs px-2.5 py-1 rounded-lg bg-[#eef9f7] text-[#066963] font-bold border border-[#ccebe7]">
               رصد 4 أسابيع
             </span>
           </div>
@@ -418,7 +418,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
         </div>
 
         {/* توزيع مواقف الاعتماد للإدارات */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+        <div className="gov-surface p-5 shadow-xs flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-bold text-slate-900">
               مواقف اعتماد إدارات المحافظة
@@ -474,7 +474,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
       </div>
 
       {/* 4. جدول ملخص لجميع الإدارات وترتيبها من حيث تحقيق المستهدفات */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+      <div className="gov-surface p-5 shadow-xs">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
@@ -532,7 +532,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
                   <td className="p-2.5 text-center font-mono">
                     <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
                       row.targetAchievedPct >= 100 ? 'bg-emerald-100 text-emerald-800' :
-                      row.targetAchievedPct >= 70 ? 'bg-sky-100 text-sky-800' : 'bg-amber-100 text-amber-900'
+                      row.targetAchievedPct >= 70 ? 'bg-[#dff4f1] text-[#066963]' : 'bg-amber-100 text-amber-900'
                     }`}>
                       {row.targetAchievedPct}%
                     </span>
@@ -543,7 +543,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
                   <td className="p-2.5 text-center">
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
                       row.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                      row.status === 'SUBMITTED_LOCKED' ? 'bg-sky-50 text-sky-700 border-sky-200' :
+                      row.status === 'SUBMITTED_LOCKED' ? 'bg-[#eef9f7] text-[#087f78] border-[#ccebe7]' :
                       row.status === 'RETURNED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
                       'bg-amber-50 text-amber-700 border-amber-200'
                     }`}>
