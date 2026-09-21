@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { UserProfile, DailySubmission } from '@/lib/types';
 import { MasarService } from '@/lib/masar-service';
+import { persistDailySubmission, writeAuditEvent } from '@/lib/services/submissions-client';
 import { AlertTriangle, Send, X, ShieldAlert } from 'lucide-react';
 
 interface OverrideRequestModalProps {
@@ -21,7 +22,7 @@ export const OverrideRequestModal: React.FC<OverrideRequestModalProps> = ({
   const [reason, setReason] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reason.trim()) {
       alert('يرجى توضيح سبب طلب الفتح الاستثنائي بصورة تفصيلية.');
@@ -31,7 +32,20 @@ export const OverrideRequestModal: React.FC<OverrideRequestModalProps> = ({
     setIsSubmitting(true);
     try {
       const updatedSub = MasarService.requestOverride(submission.district_id, reason.trim(), user);
-      onRequestSubmitted(updatedSub);
+      const persisted = await persistDailySubmission(updatedSub, user);
+      await writeAuditEvent({
+        user,
+        action: 'OVERRIDE_REQUEST',
+        entity: 'daily_submissions',
+        entityId: persisted.id,
+        metadata: {
+          actor_name: user.full_name,
+          actor_role: user.role_title_ar,
+          description: `طلب فتح استثنائي لإدارة (${persisted.district_name_ar}) - السبب: ${reason.trim()}`,
+          target_district: persisted.district_name_ar,
+        },
+      });
+      onRequestSubmitted(persisted);
       alert('تم رفع طلب الفتح الاستثنائي بنجاح إلى مديرية الشئون الصحية (الجهة الأم). سيتم فحص الطلب فورياً.');
       onClose();
     } catch (err: any) {
