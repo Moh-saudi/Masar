@@ -488,10 +488,10 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in">
+    <div className="space-y-4">
       
       {/* 1. الترويسة الرئيسية للهيكل التنظيمي وإدارة المنشآت */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <div className="gov-surface p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-200">
@@ -527,7 +527,7 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
                 activeViewMode === 'directory' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Building2 className="w-3.5 h-3.5 text-sky-600" />
+              <Building2 className="w-3.5 h-3.5 text-[#087f78]" />
               <span>دليل المنشآت والوحدات ({facilities.length})</span>
             </button>
           </div>
@@ -543,7 +543,7 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
 
           <button
             onClick={() => setShowAddFacilityModal(true)}
-            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white flex items-center gap-1.5 transition shadow-xs cursor-pointer"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-[#087f78] text-white flex items-center gap-1.5 transition shadow-xs cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>إضافة منشأة صحية</span>
@@ -605,7 +605,7 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
 
         <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
           <div className="text-slate-400 mb-1 font-semibold">مديريات الشئون الصحية</div>
-          <div className="text-xl font-black font-mono text-sky-700">{governorates.length}</div>
+          <div className="text-xl font-black font-mono text-[#087f78]">{governorates.length}</div>
           <span className="text-[10px] text-slate-500">محافظة مسجلة</span>
         </div>
 
@@ -624,7 +624,7 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
 
       {/* 3. النمط الأول: الشجرة الهرمية التفاعلية */}
       {activeViewMode === 'tree' ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6">
+        <div className="gov-surface p-6 shadow-xs space-y-6">
           
           <div className="border-b border-slate-200 pb-3 flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -695,13 +695,13 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
                   </div>
 
                   {/* المستوى 4: مديريات الشئون الصحية */}
-                  <div className="border border-sky-200 bg-sky-50/40 rounded-xl p-3.5 space-y-3">
+                  <div className="border border-[#ccebe7] bg-[#eef9f7]/40 rounded-xl p-3.5 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-sky-700" />
+                        <Building2 className="w-4 h-4 text-[#087f78]" />
                         <span className="font-bold text-sky-950">مديريات الشئون الصحية بالمحافظات ({governorates.length} محافظة)</span>
                       </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-sky-100 text-sky-800 font-bold">
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-[#dff4f1] text-[#066963] font-bold">
                         مستوى إقليمي (directorate_user)
                       </span>
                     </div>
@@ -718,8 +718,8 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
                               className="flex items-center justify-between cursor-pointer select-none"
                             >
                               <div className="flex items-center gap-2">
-                                {isGovExpanded ? <ChevronDown className="w-4 h-4 text-sky-600" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
-                                <span className="p-1 rounded bg-sky-100 text-sky-800 font-bold text-[10px] font-mono">
+                                {isGovExpanded ? <ChevronDown className="w-4 h-4 text-[#087f78]" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+                                <span className="p-1 rounded bg-[#dff4f1] text-[#066963] font-bold text-[10px] font-mono">
                                   كود {gov.code}
                                 </span>
                                 <span className="font-bold text-slate-900">مديرية الشئون الصحية بمحافظة {gov.name_ar}</span>
@@ -731,7 +731,7 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
 
                             {/* المستوى 5: الإدارات الصحية التابعة للمحافظة */}
                             {isGovExpanded && gov.districts && (
-                              <div className="pr-5 space-y-2 pt-2 border-r-2 border-sky-300 mr-2">
+                              <div className="pr-5 space-y-2 pt-2 border-r-2 border-[#a8ddd7] mr-2">
                                 {gov.districts.map(dist => {
                                   const isDistExpanded = !!expandedDistricts[dist.id];
                                   const distFacilities = facilities.filter(f => f.district_id === dist.id);
@@ -762,7 +762,7 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
                                                 <div className="flex items-center gap-2">
                                                   {fac.facility_type === 'MATERNITY_HOSPITAL' ? <Baby className="w-3.5 h-3.5 text-indigo-600" /> :
                                                    fac.facility_type === 'GENERAL_HOSPITAL' ? <Hospital className="w-3.5 h-3.5 text-rose-600" /> :
-                                                   <Home className="w-3.5 h-3.5 text-sky-600" />}
+                                                   <Home className="w-3.5 h-3.5 text-[#087f78]" />}
                                                   <span className="font-bold text-slate-800">{fac.name_ar}</span>
                                                   <span className="text-[10px] text-slate-400">({fac.facility_type_ar})</span>
                                                 </div>
@@ -807,7 +807,7 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
         </div>
       ) : (
         /* 4. النمط الثاني: جدول إدارة المنشآت والوحدات الصحية والبحث المتقدم */
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+        <div className="gov-surface p-6 shadow-xs space-y-4">
           
           <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200">
             <div>
@@ -836,7 +836,7 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
                 placeholder="بحث باسم المنشأة أو الإدارة..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs p-2.5 pr-8 rounded-xl font-medium focus:outline-none focus:border-sky-500"
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs p-2.5 pr-8 rounded-xl font-medium focus:outline-none focus:border-[#087f78]"
               />
               <Search className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3.5" />
             </div>
@@ -845,7 +845,7 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
               <select
                 value={selectedGovFilter}
                 onChange={(e) => setSelectedGovFilter(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs p-2.5 rounded-xl font-medium focus:outline-none focus:border-sky-500"
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs p-2.5 rounded-xl font-medium focus:outline-none focus:border-[#087f78]"
               >
                 <option value="ALL">جميع المحافظات</option>
                 {governorates.map(gov => (
@@ -858,7 +858,7 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
               <select
                 value={selectedTypeFilter}
                 onChange={(e) => setSelectedTypeFilter(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs p-2.5 rounded-xl font-medium focus:outline-none focus:border-sky-500"
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs p-2.5 rounded-xl font-medium focus:outline-none focus:border-[#087f78]"
               >
                 <option value="ALL">جميع أنواع المنشآت</option>
                 <option value="FAMILY_HEALTH_UNIT">وحدات صحة الأسرة</option>
@@ -892,7 +892,7 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
                     <td className="p-2.5 font-bold text-slate-900 flex items-center gap-2">
                       {fac.facility_type === 'MATERNITY_HOSPITAL' ? <Baby className="w-3.5 h-3.5 text-indigo-600" /> :
                        fac.facility_type === 'GENERAL_HOSPITAL' ? <Hospital className="w-3.5 h-3.5 text-rose-600" /> :
-                       <Home className="w-3.5 h-3.5 text-sky-600" />}
+                       <Home className="w-3.5 h-3.5 text-[#087f78]" />}
                       <span>{fac.name_ar}</span>
                     </td>
                     <td className="p-2.5 text-slate-600 font-medium">{fac.facility_type_ar}</td>
@@ -936,7 +936,7 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
             </button>
 
             <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-              <div className="p-2 rounded-xl bg-sky-50 text-sky-700 border border-sky-200">
+              <div className="p-2 rounded-xl bg-[#eef9f7] text-[#087f78] border border-[#ccebe7]">
                 <Hospital className="w-5 h-5" />
               </div>
               <div>
@@ -954,7 +954,7 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
                   value={newFacName}
                   onChange={(e) => setNewFacName(e.target.value)}
                   placeholder="مثال: مركز طب أسرة الحي السابع أو مستشفى الجلاء"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-sky-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-[#087f78]"
                 />
               </div>
 
@@ -964,7 +964,7 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
                   <select
                     value={newFacType}
                     onChange={(e) => setNewFacType(e.target.value as FacilityType)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-sky-500"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-[#087f78]"
                   >
                     <option value="FAMILY_HEALTH_UNIT">وحدة صحة أسرة</option>
                     <option value="FAMILY_HEALTH_CENTER">مركز طب أسرة حضري</option>
@@ -985,7 +985,7 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
                         setNewFacDistId(selectedGov.districts[0].id);
                       }
                     }}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-sky-500"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-[#087f78]"
                   >
                     {governorates.map(gov => (
                       <option key={gov.id} value={gov.id}>محافظة {gov.name_ar}</option>
@@ -999,7 +999,7 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
                 <select
                   value={newFacDistId}
                   onChange={(e) => setNewFacDistId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-sky-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-[#087f78]"
                 >
                   {(governorates.find(g => g.id === newFacGovId)?.districts || []).map(dist => (
                     <option key={dist.id} value={dist.id}>{dist.name_ar}</option>
@@ -1023,7 +1023,7 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
                     type="checkbox"
                     checked={newFacCounseling}
                     onChange={(e) => setNewFacCounseling(e.target.checked)}
-                    className="w-4 h-4 rounded text-sky-600 focus:ring-sky-500"
+                    className="w-4 h-4 rounded text-[#087f78] focus:ring-sky-500"
                   />
                   <span className="font-bold text-slate-800">توفر غرفة مشورة تنظيم الأسرة المتكاملة</span>
                 </label>
@@ -1039,7 +1039,7 @@ export const OrganizationHierarchyView: React.FC<OrganizationHierarchyViewProps>
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold transition shadow-xs"
+                  className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-[#087f78] text-white font-bold transition shadow-xs"
                 >
                   حفظ المنشأة وإدراجها
                 </button>
