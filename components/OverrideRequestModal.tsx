@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { UserProfile, DailySubmission } from '@/lib/types';
 import { MasarService } from '@/lib/masar-service';
 import { persistDailySubmission, writeAuditEvent } from '@/lib/services/submissions-client';
+import { OperationFeedbackDialog } from './OperationFeedbackDialog';
 import { AlertTriangle, Send, X, ShieldAlert } from 'lucide-react';
 
 interface OverrideRequestModalProps {
@@ -48,8 +49,11 @@ export const OverrideRequestModal: React.FC<OverrideRequestModalProps> = ({
       onRequestSubmitted(persisted);
       alert('تم رفع طلب الفتح الاستثنائي بنجاح إلى مديرية الشئون الصحية (الجهة الأم). سيتم فحص الطلب فورياً.');
       onClose();
-    } catch (err: any) {
-      alert(err.message || 'حدث خطأ أثناء رفع الطلب');
+    } catch {
+      setOperationError({
+        title: 'تعذر رفع طلب الفتح الاستثنائي',
+        message: 'لم نتمكن من إرسال الطلب إلى المديرية الآن. أعد المحاولة، وإذا استمرت المشكلة تواصل مع الدعم الفني.',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -116,6 +120,15 @@ export const OverrideRequestModal: React.FC<OverrideRequestModalProps> = ({
         </form>
 
       </div>
+      <OperationFeedbackDialog
+        open={Boolean(operationError)}
+        type="error"
+        title={operationError?.title || 'تعذر إتمام العملية'}
+        message={operationError?.message || 'حدث خطأ غير متوقع.'}
+        onClose={() => setOperationError(null)}
+        onRetry={() => setOperationError(null)}
+      />
+
     </div>
   );
 };
