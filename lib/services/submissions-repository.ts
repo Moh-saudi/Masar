@@ -1,34 +1,29 @@
 import { createServerSupabaseClient } from '@/lib/auth/server'
-import { cachedRequest, invalidateCache } from './request-cache'
 import type { DailySubmission } from '@/lib/types'
 
-const CACHE_KEY = 'daily-submissions'
-
-export async function getSubmissionsFromDatabase() {
-  return cachedRequest(CACHE_KEY, async () => {
-    const supabase = await createServerSupabaseClient()
-
-    const { data, error } = await supabase
-      .from('daily_submissions')
-      .select('*')
-      .order('submission_date', { ascending: false })
-
-    if (error) throw error
-    return data as DailySubmission[]
-  })
-}
-
-export async function saveSubmissionToDatabase(submission: Partial<DailySubmission>) {
+export async function getSubmissionsFromDatabase(): Promise<DailySubmission[]> {
   const supabase = await createServerSupabaseClient()
 
   const { data, error } = await supabase
     .from('daily_submissions')
-    .upsert(submission)
-    .select()
+    .select('*')
+    .order('submission_date', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as DailySubmission[]
+}
+
+export async function saveSubmissionToDatabase(
+  submission: Partial<DailySubmission>
+): Promise<DailySubmission> {
+  const supabase = await createServerSupabaseClient()
+
+  const { data, error } = await supabase
+    .from('daily_submissions')
+    .upsert(submission, { onConflict: 'submission_date,district_id' })
+    .select('*')
     .single()
 
   if (error) throw error
-
-  invalidateCache(CACHE_KEY)
-  return data
+  return data as DailySubmission
 }
