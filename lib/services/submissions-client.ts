@@ -1,5 +1,6 @@
 import { createBrowserClient } from '@/lib/supabase/client'
 import type { DailySubmission, UserProfile } from '@/lib/types'
+import { getCairoDateString } from '@/lib/date'
 
 function toDatabasePayload(submission: DailySubmission, user?: UserProfile) {
   return {
@@ -78,7 +79,7 @@ export async function writeAuditEvent(input: {
 
 export async function approveNationalReport(user: UserProfile) {
   const supabase = createBrowserClient()
-  const today = new Date().toISOString().slice(0, 10)
+  const today = getCairoDateString()
 
   const { data, error } = await supabase
     .from('daily_submissions')
