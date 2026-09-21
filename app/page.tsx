@@ -134,7 +134,7 @@ export default function MasarPlatformPage() {
       {/* 3. شريط التنقل الخاص بمسؤول النظام العام (Super Admin فقط) */}
       {user.role === 'super_admin' && (
         <div className="bg-white border-b border-slate-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap items-center justify-between gap-3">
+          <div className="gov-shell mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-xs text-purple-700 font-bold">
               <ShieldCheck className="w-4 h-4" />
               <span>صلاحيات إدارة النظام الشاملة:</span>
@@ -196,7 +196,7 @@ export default function MasarPlatformPage() {
       )}
 
       {/* 4. توجيه البوابات الحصري طبقاً لصلاحيات الحساب المسجل */}
-      <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="flex-1 gov-shell w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
         {/* أ. مستوى الإدارة الصحية (District Health Officer) */}
         {user.role === 'district_user' && userDistrictSubmission && (
