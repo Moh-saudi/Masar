@@ -11,6 +11,7 @@ import { MinistryPortal } from '@/components/MinistryPortal';
 import { ReportsCenterView } from '@/components/ReportsCenterView';
 import { AdminUsersPortal } from '@/components/AdminUsersPortal';
 import { AuditLogModal } from '@/components/AuditLogModal';
+import { SystemErrorNotice } from '@/components/SystemErrorNotice';
 import { MasarService } from '@/lib/masar-service';
 import { fetchDailySubmissions } from '@/lib/services/submissions-client';
 import { fetchAuditTrail } from '@/lib/services/audit-client';
@@ -25,7 +26,7 @@ import {
 } from 'lucide-react';
 
 export default function MasarPlatformPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, configured } = useAuth();
 
   const [submissions, setSubmissions] = useState<DailySubmission[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
@@ -46,6 +47,8 @@ export default function MasarPlatformPage() {
 
   // مزامنة البيانات
   const reloadData = useCallback(async () => {
+    if (!configured || !user) return;
+
     try {
       const [subs, logs] = await Promise.all([
         fetchDailySubmissions(),
@@ -66,11 +69,13 @@ export default function MasarPlatformPage() {
       setSubmissions([...MasarService.getSubmissions()]);
       setAuditLogs([...MasarService.getAuditLogs()]);
     }
-  }, []);
+  }, [configured, user]);
 
   useEffect(() => {
-    reloadData();
-  }, [reloadData]);
+    if (configured && user) {
+      reloadData();
+    }
+  }, [configured, user, reloadData]);
 
   // تحديث حالة الحوكمة الزمنية الحقيقية
   useEffect(() => {
@@ -105,7 +110,19 @@ export default function MasarPlatformPage() {
     );
   }
 
-  // 2. إذا لم يكن مسجلاً، إظهار شاشة الدخول المعتمدة
+  // 2. إذا لم تكن قاعدة البيانات مضبوطة في بيئة التشغيل
+  if (!configured) {
+    return (
+      <main className="min-h-screen bg-[#f5f8fb] flex items-center justify-center px-4 py-10 font-arabic">
+        <SystemErrorNotice
+          title="المنظومة غير مرتبطة بقاعدة البيانات"
+          message="إعدادات الاتصال الآمن بقاعدة البيانات غير مضافة في بيئة التشغيل الحالية. برجاء التواصل مع الدعم الفني لاستكمال إعداد المنظومة."
+        />
+      </main>
+    );
+  }
+
+  // 3. إذا لم يكن مسجلاً، إظهار شاشة الدخول المعتمدة
   if (!user) {
     return <LoginView />;
   }
