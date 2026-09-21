@@ -56,7 +56,10 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
 
   const handleReturnSubmission = async (districtId: string) => {
     if (!returnReason.trim()) {
-      alert('يرجى كتابة سبب إرجاع البيان بوضوح للإدارة الصحية.');
+      setOperationError({
+        title: 'سبب الإرجاع مطلوب',
+        message: 'اكتب سبب إرجاع البيان بصورة واضحة حتى يظهر لموظف الإدارة الصحية قبل تأكيد الإرجاع.',
+      });
       return;
     }
 
