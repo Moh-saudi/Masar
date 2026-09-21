@@ -5,6 +5,7 @@ import { DailySubmission, TimeLockState, UserProfile } from '@/lib/types';
 import { SECTION_GROUPS, SECTIONS_DEFINITIONS } from '@/lib/constants';
 import { MasarService } from '@/lib/masar-service';
 import { persistDailySubmission, writeAuditEvent } from '@/lib/services/submissions-client';
+import { OperationFeedbackDialog } from './OperationFeedbackDialog';
 import {
   Save,
   Send,
@@ -55,6 +56,7 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
   const [matrixValues, setMatrixValues] = useState<Record<number, MatrixRow>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [operationError, setOperationError] = useState<{ title: string; message: string } | null>(null);
 
   const isLocked =
     (timeLock.is_district_locked || submission.status === 'SUBMITTED_LOCKED') &&
@@ -122,8 +124,11 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
       onSubmissionUpdated(persisted);
       showStatus('تم حفظ بيانات القسم بنجاح');
       return persisted;
-    } catch (error: any) {
-      alert(error?.message || 'تعذر حفظ بيانات القسم');
+    } catch {
+      setOperationError({
+        title: 'تعذر حفظ بيانات القسم',
+        message: 'لم نتمكن من حفظ بيانات القسم الآن. تحقق من الاتصال وحاول مرة أخرى، وإذا استمرت المشكلة تواصل مع الدعم الفني.',
+      });
     } finally {
       setIsSaving(false);
     }
@@ -159,8 +164,11 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
       onSubmissionUpdated(persisted);
       showStatus('تم حفظ جميع الأقسام');
       return persisted;
-    } catch (error: any) {
-      alert(error?.message || 'تعذر حفظ البيانات');
+    } catch {
+      setOperationError({
+        title: 'تعذر حفظ البيانات',
+        message: 'لم نتمكن من حفظ بيانات الأقسام الآن. حاول مرة أخرى، وإذا استمرت المشكلة تواصل مع الدعم الفني.',
+      });
     } finally {
       setIsSaving(false);
     }
@@ -226,8 +234,11 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
 
       onSubmissionUpdated(persisted);
       showStatus('تم إرسال البيان للمراجعة');
-    } catch (error: any) {
-      alert(error?.message || 'تعذر إرسال البيان');
+    } catch {
+      setOperationError({
+        title: 'تعذر إرسال البيان',
+        message: 'لم يتم إرسال البيان إلى المديرية. راجع الاتصال ثم أعد المحاولة، وإذا استمرت المشكلة تواصل مع الدعم الفني.',
+      });
     } finally {
       setIsSaving(false);
     }
@@ -633,6 +644,15 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
           {isLocked ? 'البيان مغلق حاليًا' : 'إرسال البيان للمراجعة'}
         </button>
       </div>
+
+      <OperationFeedbackDialog
+        open={Boolean(operationError)}
+        type="error"
+        title={operationError?.title || 'تعذر إتمام العملية'}
+        message={operationError?.message || 'حدث خطأ غير متوقع.'}
+        onClose={() => setOperationError(null)}
+        onRetry={() => setOperationError(null)}
+      />
 
     </div>
   );
