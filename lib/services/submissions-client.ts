@@ -74,3 +74,32 @@ export async function writeAuditEvent(input: {
 
   if (error) throw error
 }
+
+
+export async function approveNationalReport(user: UserProfile) {
+  const supabase = createBrowserClient()
+  const today = new Date().toISOString().slice(0, 10)
+
+  const { data, error } = await supabase
+    .from('daily_submissions')
+    .update({ ministry_status: 'APPROVED' })
+    .eq('submission_date', today)
+    .select('*')
+
+  if (error) throw error
+
+  await writeAuditEvent({
+    user,
+    action: 'MINISTRY_NATIONAL_APPROVAL',
+    entity: 'daily_submissions',
+    metadata: {
+      actor_name: user.full_name,
+      actor_role: user.role_title_ar,
+      description: 'الاعتماد الوزاري القومي الشامل للتقرير اليومي لكافة محافظات الجمهورية',
+      submission_date: today,
+      approved_count: data?.length ?? 0,
+    },
+  })
+
+  return (data ?? []) as DailySubmission[]
+}
