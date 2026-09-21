@@ -36,11 +36,11 @@ export const TimeLockBar: React.FC<TimeLockBarProps> = ({
             <span className="hidden sm:block w-px h-4 bg-slate-200" />
 
             <div
-              className={\`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-extrabold \${
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-extrabold ${
                 locked
                   ? 'bg-rose-50 text-rose-700 border-rose-200'
                   : 'bg-[#eef9f6] text-[#147d64] border-[#cfece3]'
-              }\`}
+              }`}
             >
               {locked
                 ? <LockKeyhole className="w-3.5 h-3.5" />
@@ -48,7 +48,7 @@ export const TimeLockBar: React.FC<TimeLockBarProps> = ({
               <span>
                 {locked
                   ? 'انتهت نافذة الإدخال'
-                  : \`الإدخال متاح حتى \${timeLock.district_deadline}\`}
+                  : `الإدخال متاح حتى ${timeLock.district_deadline}`}
               </span>
             </div>
 
