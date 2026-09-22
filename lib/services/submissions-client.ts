@@ -286,6 +286,81 @@ export async function persistDailySubmission(
   return data as DailySubmission
 }
 
+export async function grantDirectorateOverride(
+  submissionId: string,
+  user: UserProfile,
+  durationMinutes = 30
+): Promise<DailySubmission> {
+  const supabase = createBrowserClient()
+  const now = new Date()
+  const expiresAt = new Date(now.getTime() + durationMinutes * 60_000).toISOString()
+
+  const { data, error } = await supabase
+    .from('daily_submissions')
+    .update({
+      override_active: true,
+      override_expires_at: expiresAt,
+      override_granted_by: `${user.full_name} (${user.role_title_ar})`,
+      override_granted_at: now.toISOString(),
+      status: 'DRAFT',
+    })
+    .eq('id', submissionId)
+    .select(SUBMISSION_DETAIL_COLUMNS)
+    .single()
+
+  if (error) throw error
+  return data as DailySubmission
+}
+
+export async function returnDirectorateSubmission(
+  submissionId: string,
+  reason: string,
+  user: UserProfile
+): Promise<DailySubmission> {
+  const supabase = createBrowserClient()
+  const now = new Date()
+  const expiresAt = new Date(now.getTime() + 60 * 60_000).toISOString()
+
+  const { data, error } = await supabase
+    .from('daily_submissions')
+    .update({
+      status: 'RETURNED',
+      directorate_status: 'RETURNED',
+      returned_reason: reason,
+      returned_by: `${user.full_name} (${user.role_title_ar})`,
+      returned_at: now.toISOString(),
+      override_active: true,
+      override_expires_at: expiresAt,
+    })
+    .eq('id', submissionId)
+    .select(SUBMISSION_DETAIL_COLUMNS)
+    .single()
+
+  if (error) throw error
+  return data as DailySubmission
+}
+
+export async function approveDirectorateSubmission(
+  submissionId: string
+): Promise<DailySubmission> {
+  const supabase = createBrowserClient()
+
+  const { data, error } = await supabase
+    .from('daily_submissions')
+    .update({
+      directorate_status: 'APPROVED',
+      status: 'APPROVED',
+      override_active: false,
+      override_expires_at: null,
+    })
+    .eq('id', submissionId)
+    .select(SUBMISSION_DETAIL_COLUMNS)
+    .single()
+
+  if (error) throw error
+  return data as DailySubmission
+}
+
 export async function writeAuditEvent(input: {
   user: UserProfile
   action: string

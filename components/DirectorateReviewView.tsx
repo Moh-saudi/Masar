@@ -3,8 +3,12 @@
 import React, { useMemo, useState } from 'react';
 import { DailySubmission, UserProfile, TimeLockState } from '@/lib/types';
 import { SECTIONS_DEFINITIONS } from '@/lib/constants';
-import { MasarService } from '@/lib/masar-service';
-import { persistDailySubmission, writeAuditEvent } from '@/lib/services/submissions-client';
+import {
+  approveDirectorateSubmission,
+  grantDirectorateOverride,
+  returnDirectorateSubmission,
+  writeAuditEvent,
+} from '@/lib/services/submissions-client';
 import { OperationFeedbackDialog } from './OperationFeedbackDialog';
 import { ConfirmationDialog } from './ConfirmationDialog';
 import { SubmissionMonitoringTable } from './SubmissionMonitoringTable';
@@ -65,8 +69,13 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
     }
 
     try {
-      const updated = MasarService.returnSubmission(districtId, returnReason.trim(), user);
-      const persisted = await persistDailySubmission(updated, user);
+      const currentSubmission = submissions.find(s => s.district_id === districtId);
+      if (!currentSubmission) throw new Error('SUBMISSION_NOT_FOUND');
+      const persisted = await returnDirectorateSubmission(
+        currentSubmission.id,
+        returnReason.trim(),
+        user
+      );
       await writeAuditEvent({
         user,
         action: 'SUBMISSION_RETURNED',
@@ -83,7 +92,8 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
       setReturnReason('');
       setSelectedSub(null);
       onDataChanged();
-    } catch {
+    } catch (error) {
+      console.error('Failed to return directorate submission.', error);
       setOperationError({
         title: 'تعذر إرجاع البيان',
         message: 'لم نتمكن من إرجاع البيان للإدارة الصحية الآن. أعد المحاولة، وإذا استمرت المشكلة تواصل مع الدعم الفني.',
@@ -93,8 +103,9 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
 
   const handleGrantOverride = async (districtId: string) => {
     try {
-      const updated = MasarService.grantOverride(districtId, user);
-      const persisted = await persistDailySubmission(updated, user);
+      const currentSubmission = submissions.find(s => s.district_id === districtId);
+      if (!currentSubmission) throw new Error('SUBMISSION_NOT_FOUND');
+      const persisted = await grantDirectorateOverride(currentSubmission.id, user, 30);
       await writeAuditEvent({
         user,
         action: 'OVERRIDE_GRANTED',
@@ -108,7 +119,8 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
         },
       });
       onDataChanged();
-    } catch {
+    } catch (error) {
+      console.error('Failed to grant directorate override.', error);
       setOperationError({
         title: 'تعذر منح الفتح المؤقت',
         message: 'لم نتمكن من تفعيل الفتح الاستثنائي الآن. أعد المحاولة، وإذا استمرت المشكلة تواصل مع الدعم الفني.',
@@ -118,8 +130,9 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
 
   const handleApproveSubmission = async (districtId: string) => {
     try {
-      const updated = MasarService.approveDirectorateSubmission(districtId, user);
-      const persisted = await persistDailySubmission(updated, user);
+      const currentSubmission = submissions.find(s => s.district_id === districtId);
+      if (!currentSubmission) throw new Error('SUBMISSION_NOT_FOUND');
+      const persisted = await approveDirectorateSubmission(currentSubmission.id);
       await writeAuditEvent({
         user,
         action: 'DIRECTORATE_APPROVE',
@@ -134,7 +147,8 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
       });
       setSelectedSub(null);
       onDataChanged();
-    } catch {
+    } catch (error) {
+      console.error('Failed to approve directorate submission.', error);
       setOperationError({
         title: 'تعذر اعتماد البيان',
         message: 'لم يتم اعتماد البيان في الوقت الحالي. أعد المحاولة، وإذا استمرت المشكلة تواصل مع الدعم الفني.',
