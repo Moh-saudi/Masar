@@ -48,8 +48,10 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
   const [confirmation, setConfirmation] = useState<{ type: 'override' | 'approve'; districtId: string } | null>(null);
 
   const filteredSubmissions = useMemo(() => {
+    if (!user.governorate_id) return [];
+
     return submissions
-      .filter(s => !user.governorate_id || s.governorate_id === user.governorate_id)
+      .filter(s => s.governorate_id === user.governorate_id)
       .filter(s => s.district_name_ar.includes(searchQuery.trim()))
       .filter(s => {
         if (filter === 'pending') return s.status === 'SUBMITTED_LOCKED' && s.directorate_status === 'PENDING';
@@ -69,7 +71,11 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
     }
 
     try {
-      const currentSubmission = submissions.find(s => s.district_id === districtId);
+      const currentSubmission = user.governorate_id
+        ? submissions.find(
+            s => s.district_id === districtId && s.governorate_id === user.governorate_id
+          )
+        : undefined;
       if (!currentSubmission) throw new Error('SUBMISSION_NOT_FOUND');
       const persisted = await returnDirectorateSubmission(
         currentSubmission.id,
@@ -103,7 +109,11 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
 
   const handleGrantOverride = async (districtId: string) => {
     try {
-      const currentSubmission = submissions.find(s => s.district_id === districtId);
+      const currentSubmission = user.governorate_id
+        ? submissions.find(
+            s => s.district_id === districtId && s.governorate_id === user.governorate_id
+          )
+        : undefined;
       if (!currentSubmission) throw new Error('SUBMISSION_NOT_FOUND');
       const persisted = await grantDirectorateOverride(currentSubmission.id, user, 30);
       await writeAuditEvent({
@@ -130,7 +140,11 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
 
   const handleApproveSubmission = async (districtId: string) => {
     try {
-      const currentSubmission = submissions.find(s => s.district_id === districtId);
+      const currentSubmission = user.governorate_id
+        ? submissions.find(
+            s => s.district_id === districtId && s.governorate_id === user.governorate_id
+          )
+        : undefined;
       if (!currentSubmission) throw new Error('SUBMISSION_NOT_FOUND');
       const persisted = await approveDirectorateSubmission(currentSubmission.id);
       await writeAuditEvent({

@@ -130,8 +130,25 @@ export default function MasarPlatformPage() {
     return <LoginView />;
   }
 
-  // العثور على بيان الإدارة الخاصة بالمستخدم
-  const userDistrictSubmission = submissions.find(s => s.district_id === user.district_id) || submissions[0];
+  // دفاع إضافي بجانب RLS: أي حساب جغرافي ناقص النطاق يفشل مغلقًا ولا يرى سجلات.
+  const scopedSubmissions = React.useMemo(() => {
+    if (user.role === 'district_user') {
+      if (!user.district_id) return [];
+      return submissions.filter(s => s.district_id === user.district_id);
+    }
+
+    if (user.role === 'directorate_user') {
+      if (!user.governorate_id) return [];
+      return submissions.filter(s => s.governorate_id === user.governorate_id);
+    }
+
+    return submissions;
+  }, [submissions, user.role, user.district_id, user.governorate_id]);
+
+  const userDistrictSubmission =
+    user.role === 'district_user' && user.district_id
+      ? scopedSubmissions.find(s => s.district_id === user.district_id)
+      : undefined;
 
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col font-arabic">
@@ -205,7 +222,7 @@ export default function MasarPlatformPage() {
         {/* ب. مستوى مديرية الشئون الصحية بالمحافظة (Directorate Reviewer) */}
         {user.role === 'directorate_user' && (
           <DirectoratePortal
-            submissions={submissions}
+            submissions={scopedSubmissions}
             user={user}
             timeLock={timeLock}
             onDataChanged={reloadData}
@@ -215,7 +232,7 @@ export default function MasarPlatformPage() {
         {/* ج. مستوى قيادات الوزارة والقطاع (Ministry & Sector Head) */}
         {(user.role === 'sector_head' || user.role === 'general_director' || user.role === 'central_admin') && (
           <MinistryPortal
-            submissions={submissions}
+            submissions={scopedSubmissions}
             user={user}
             timeLock={timeLock}
             onDataChanged={reloadData}
@@ -228,14 +245,14 @@ export default function MasarPlatformPage() {
             {adminActiveTab === 'admin' && (
               <AdminUsersPortal
                 auditLogs={auditLogs}
-                submissions={submissions}
+                submissions={scopedSubmissions}
                 currentUser={user}
                 onLoadAuditLogs={loadAuditLogs}
               />
             )}
             {adminActiveTab === 'ministry' && (
               <MinistryPortal
-                submissions={submissions}
+                submissions={scopedSubmissions}
                 user={user}
                 timeLock={timeLock}
                 onDataChanged={reloadData}
@@ -243,13 +260,13 @@ export default function MasarPlatformPage() {
             )}
             {adminActiveTab === 'directorate' && (
               <DirectoratePortal
-                submissions={submissions}
+                submissions={scopedSubmissions}
                 user={user}
                 timeLock={timeLock}
                 onDataChanged={reloadData}
               />
             )}
-            {adminActiveTab === 'district' && userDistrictSubmission && (
+            {adminActiveTab === 'district' && user.role === 'district_user' && userDistrictSubmission && (
               <DistrictPortal
                 submission={userDistrictSubmission}
                 user={user}
@@ -259,7 +276,7 @@ export default function MasarPlatformPage() {
             )}
             {adminActiveTab === 'reports' && (
               <ReportsCenterView
-                submissions={submissions}
+                submissions={scopedSubmissions}
                 user={user}
               />
             )}

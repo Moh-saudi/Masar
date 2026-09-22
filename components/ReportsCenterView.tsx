@@ -358,18 +358,44 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
       return;
     }
 
+    if (isDistrict && !user.district_id) {
+      setRangeError('الحساب غير مرتبط بإدارة صحية. تم منع عرض أي سجلات حفاظًا على صلاحيات الوصول.');
+      setRemoteRows([]);
+      setResultCount(0);
+      return;
+    }
+
+    if (isDirectorate && !user.governorate_id) {
+      setRangeError('الحساب غير مرتبط بمحافظة. تم منع عرض أي سجلات حفاظًا على صلاحيات الوصول.');
+      setRemoteRows([]);
+      setResultCount(0);
+      return;
+    }
+
     const selectedGovObject = SAMPLE_GOVERNORATES.find(g => g.code === selectedGov);
-    const governorateName = isDistrict || isDirectorate
-      ? user.governorate_name_ar
+    const selectedDistrictObject =
+      selectedGovObject?.districts?.find(d => d.name_ar === selectedDistrict) ||
+      SAMPLE_GOVERNORATES.flatMap(g => g.districts ?? []).find(d => d.name_ar === selectedDistrict);
+
+    const governorateId = isDistrict || isDirectorate
+      ? user.governorate_id
       : selectedGov === 'all'
         ? undefined
-        : selectedGovObject?.name_ar;
+        : selectedGovObject?.id;
 
-    const districtName = isDistrict
-      ? user.district_name_ar
+    const districtId = isDistrict
+      ? user.district_id
       : selectedDistrict === 'all'
         ? undefined
-        : selectedDistrict;
+        : selectedDistrictObject?.id;
+
+    const governorateName = !governorateId && !isDistrict && !isDirectorate && selectedGov !== 'all'
+      ? selectedGovObject?.name_ar
+      : undefined;
+
+    const districtName = !districtId && !isDistrict && selectedDistrict !== 'all'
+      ? selectedDistrict
+      : undefined;
 
     const isPlainTodayView =
       fromDate === today &&
@@ -397,6 +423,8 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
         toDate,
         page,
         pageSize: 50,
+        governorateId,
+        districtId,
         governorateName,
         districtName,
         status: selectedStatus === 'all' ? undefined : selectedStatus,

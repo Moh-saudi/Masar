@@ -70,6 +70,8 @@ export interface SubmissionPageOptions {
   toDate?: string
   page?: number
   pageSize?: number
+  governorateId?: string
+  districtId?: string
   governorateName?: string
   districtName?: string
   status?: string
@@ -136,11 +138,15 @@ export async function fetchSubmissionPage(
     .gte('submission_date', fromDate)
     .lte('submission_date', toDate)
 
-  if (options.governorateName) {
+  if (options.governorateId) {
+    query = query.eq('governorate_id', options.governorateId)
+  } else if (options.governorateName) {
     query = query.eq('governorate_name_ar', options.governorateName)
   }
 
-  if (options.districtName) {
+  if (options.districtId) {
+    query = query.eq('district_id', options.districtId)
+  } else if (options.districtName) {
     query = query.eq('district_name_ar', options.districtName)
   }
 
@@ -177,6 +183,8 @@ export async function fetchReportPeriodBundle(
       p_to: normalized.toDate,
       p_page: normalized.page,
       p_page_size: normalized.pageSize,
+      p_governorate_id: options.governorateId ?? null,
+      p_district_id: options.districtId ?? null,
       p_governorate_name: options.governorateName ?? null,
       p_district_name: options.districtName ?? null,
       p_status: options.status ?? null,
