@@ -61,6 +61,9 @@ export interface SubmissionPageOptions {
   toDate?: string
   page?: number
   pageSize?: number
+  governorateName?: string
+  districtName?: string
+  status?: string
 }
 
 export interface SubmissionPageResult {
@@ -82,11 +85,25 @@ export async function fetchSubmissionPage(
   const from = (page - 1) * pageSize
   const to = from + pageSize - 1
 
-  const { data, error, count } = await supabase
+  let query = supabase
     .from('daily_submissions')
     .select(SUBMISSION_COLUMNS, { count: 'exact' })
     .gte('submission_date', fromDate)
     .lte('submission_date', toDate)
+
+  if (options.governorateName) {
+    query = query.eq('governorate_name_ar', options.governorateName)
+  }
+
+  if (options.districtName) {
+    query = query.eq('district_name_ar', options.districtName)
+  }
+
+  if (options.status) {
+    query = query.eq('status', options.status)
+  }
+
+  const { data, error, count } = await query
     .order('submission_date', { ascending: false })
     .order('updated_at', { ascending: false })
     .range(from, to)

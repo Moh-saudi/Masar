@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { DailySubmission, UserProfile, TimeLockState } from '@/lib/types';
 import { DistrictEntryView } from './DistrictEntryView';
 import { DistrictDashboardView } from './DistrictDashboardView';
+import { ReportsCenterView } from './ReportsCenterView';
 import { GovernanceAlertBanner } from './GovernanceAlertBanner';
 import { OverrideRequestModal } from './OverrideRequestModal';
 import {
@@ -16,6 +17,7 @@ import {
   CalendarDays,
   MapPin,
   FileCheck2,
+  FileSpreadsheet,
   ShieldAlert,
   ArrowLeft
 } from 'lucide-react';
@@ -33,7 +35,7 @@ export const DistrictPortal: React.FC<DistrictPortalProps> = ({
   timeLock,
   onSubmissionUpdated,
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'entry' | 'dashboard'>('entry');
+  const [activeSubTab, setActiveSubTab] = useState<'entry' | 'dashboard' | 'reports'>('entry');
   const [showOverrideModal, setShowOverrideModal] = useState(false);
 
   const completedSections = Object.values(submission.sections).filter(s => s.status === 'completed').length;
@@ -80,6 +82,15 @@ export const DistrictPortal: React.FC<DistrictPortalProps> = ({
             >
               <BarChart3 className="w-4 h-4" />
               <span className="flex-1 text-right">مؤشرات الإدارة</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('reports')}
+              className="gov-nav-item"
+              data-active={activeSubTab === 'reports'}
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span className="flex-1 text-right">التقارير والسجل</span>
             </button>
           </nav>
 
@@ -144,17 +155,19 @@ export const DistrictPortal: React.FC<DistrictPortalProps> = ({
                 <Building2 className="w-4 h-4" />
                 <span>بوابة الإدارة الصحية</span>
                 <ArrowLeft className="w-3 h-3 text-slate-300" />
-                <span className="text-slate-500">{activeSubTab === 'entry' ? 'الإدخال اليومي' : 'المؤشرات'}</span>
+                <span className="text-slate-500">{activeSubTab === 'entry' ? 'الإدخال اليومي' : activeSubTab === 'dashboard' ? 'المؤشرات' : 'التقارير'}</span>
               </div>
 
               <h1 className="text-lg sm:text-xl font-extrabold text-[#172033]">
-                {activeSubTab === 'entry' ? 'إدخال وتجميع البيان اليومي' : 'لوحة مؤشرات الإدارة الصحية'}
+                {activeSubTab === 'entry' ? 'إدخال وتجميع البيان اليومي' : activeSubTab === 'dashboard' ? 'لوحة مؤشرات الإدارة الصحية' : 'تقارير وسجل الإدارة الصحية'}
               </h1>
 
               <p className="text-[11px] sm:text-xs text-slate-500 mt-1.5 leading-6">
                 {activeSubTab === 'entry'
                   ? 'استكمال بيانات الأقسام المعتمدة ومراجعتها قبل الإرسال إلى مديرية الشئون الصحية.'
-                  : 'متابعة المؤشرات التشغيلية وحالة اكتمال البيانات على مستوى الإدارة.'}
+                  : activeSubTab === 'dashboard'
+                    ? 'متابعة المؤشرات التشغيلية وحالة اكتمال البيانات على مستوى الإدارة.'
+                    : 'البحث في السجلات اليومية والتقارير التاريخية الخاصة بهذه الإدارة فقط.'}
               </p>
             </div>
 
@@ -186,7 +199,7 @@ export const DistrictPortal: React.FC<DistrictPortalProps> = ({
 
         <GovernanceAlertBanner currentSubmission={submission} user={user} />
 
-        {activeSubTab === 'entry' ? (
+        {activeSubTab === 'entry' && (
           <DistrictEntryView
             submission={submission}
             user={user}
@@ -194,12 +207,18 @@ export const DistrictPortal: React.FC<DistrictPortalProps> = ({
             onSubmissionUpdated={onSubmissionUpdated}
             onRequestOverride={() => setShowOverrideModal(true)}
           />
-        ) : (
+        )}
+
+        {activeSubTab === 'dashboard' && (
           <DistrictDashboardView
             submission={submission}
             user={user}
             onNavigateToEntry={() => setActiveSubTab('entry')}
           />
+        )}
+
+        {activeSubTab === 'reports' && (
+          <ReportsCenterView submissions={[submission]} user={user} />
         )}
       </section>
 

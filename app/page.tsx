@@ -146,6 +146,7 @@ export default function MasarPlatformPage() {
       {/* 2. شريط التوقيت والحوكمة السيادي الصارم */}
       <TimeLockBar
         timeLock={timeLock}
+        userRole={user.role}
         simulatedTime={null}
         onOpenSimModal={() => {}}
         onRequestOverride={() => {}}

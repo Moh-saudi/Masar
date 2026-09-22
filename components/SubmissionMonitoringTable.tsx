@@ -3,13 +3,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { DailySubmission } from '@/lib/types';
 import { SECTIONS_DEFINITIONS } from '@/lib/constants';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock3, Eye, MapPin, X } from 'lucide-react';
+import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Clock3, Eye, MapPin, ShieldAlert, ShieldCheck, X } from 'lucide-react';
 
 interface SubmissionMonitoringTableProps {
   submissions: DailySubmission[];
   title?: string;
   description?: string;
   pageSize?: number;
+  deadline?: string;
   emptyMessage?: string;
   onView?: (submission: DailySubmission) => void;
   renderActions?: (submission: DailySubmission) => React.ReactNode;
@@ -48,11 +49,74 @@ function statusClass(label: string) {
   return 'bg-amber-50 border-amber-200 text-amber-700';
 }
 
+function cairoNow() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Cairo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return {
+    date: `${values.year}-${values.month}-${values.day}`,
+    minutes: Number(values.hour) * 60 + Number(values.minute),
+  };
+}
+
+function timeToMinutes(value: string) {
+  const [hours, minutes] = value.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+function operationalFlag(submission: DailySubmission, deadline: string) {
+  const now = cairoNow();
+  const activeOverride = Boolean(
+    submission.override_active &&
+    submission.override_expires_at &&
+    new Date(submission.override_expires_at).getTime() > Date.now()
+  );
+  const requestedOverride = Boolean(submission.override_reason && !activeOverride);
+  const deadlinePassed =
+    submission.submission_date < now.date ||
+    (submission.submission_date === now.date && now.minutes >= timeToMinutes(deadline));
+  const late = deadlinePassed && submission.status === 'DRAFT' && !activeOverride && !requestedOverride;
+
+  if (activeOverride) {
+    return {
+      label: 'فتح استثنائي نشط',
+      rowClass: 'bg-sky-50/70 hover:bg-sky-50',
+      badgeClass: 'bg-sky-100 border-sky-200 text-sky-800',
+      icon: <ShieldCheck className="w-3 h-3" />,
+    };
+  }
+  if (requestedOverride) {
+    return {
+      label: 'طلب فتح استثنائي',
+      rowClass: 'bg-amber-50/75 hover:bg-amber-50',
+      badgeClass: 'bg-amber-100 border-amber-200 text-amber-800',
+      icon: <ShieldAlert className="w-3 h-3" />,
+    };
+  }
+  if (late) {
+    return {
+      label: 'متأخر عن الإغلاق',
+      rowClass: 'bg-rose-50/70 hover:bg-rose-50',
+      badgeClass: 'bg-rose-100 border-rose-200 text-rose-800',
+      icon: <AlertTriangle className="w-3 h-3" />,
+    };
+  }
+  return null;
+}
+
 export const SubmissionMonitoringTable: React.FC<SubmissionMonitoringTableProps> = ({
   submissions,
   title = 'متابعة جهات الإدخال',
   description = 'صف واحد لكل جهة، والتفاصيل تظهر عند الطلب دون أي استدعاء إضافي لقاعدة البيانات.',
   pageSize = 50,
+  deadline = '15:00',
   emptyMessage = 'لا توجد بيانات مطابقة.',
   onView,
   renderActions,
@@ -88,7 +152,12 @@ export const SubmissionMonitoringTable: React.FC<SubmissionMonitoringTableProps>
             <h3 className="text-xs font-extrabold text-[#172033]">{title}</h3>
             <p className="text-[9px] text-slate-400 mt-1">{description}</p>
           </div>
-          <span className="text-[9px] text-slate-400 tabular-nums">{rows.length} جهة</span>
+          <div className="flex items-center gap-3 flex-wrap text-[8px]">
+            <span className="inline-flex items-center gap-1 text-rose-700"><span className="w-2 h-2 rounded-full bg-rose-300" /> متأخر</span>
+            <span className="inline-flex items-center gap-1 text-amber-700"><span className="w-2 h-2 rounded-full bg-amber-300" /> طلب فتح</span>
+            <span className="inline-flex items-center gap-1 text-sky-700"><span className="w-2 h-2 rounded-full bg-sky-300" /> فتح نشط</span>
+            <span className="text-slate-400 tabular-nums">{rows.length} جهة</span>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -114,12 +183,19 @@ export const SubmissionMonitoringTable: React.FC<SubmissionMonitoringTableProps>
                 const updated = formatCairoDateTime(submission.updated_at);
                 const completion = getSubmissionCompletion(submission);
                 const status = getSubmissionStatusLabel(submission);
+                const flag = operationalFlag(submission, deadline);
                 return (
-                  <tr key={submission.id} className="hover:bg-[#fbfcfd] transition text-[10px]">
+                  <tr key={submission.id} className={`${flag?.rowClass || 'hover:bg-[#fbfcfd]'} transition text-[10px]`}>
                     <td className="px-4 py-3 text-center text-slate-400 tabular-nums">{(safePage - 1) * pageSize + index + 1}</td>
                     <td className="px-4 py-3 min-w-[250px]">
                       <div className="font-extrabold text-[#172033]">{submission.district_name_ar}</div>
                       <div className="mt-1 flex items-center gap-1 text-[9px] text-slate-400"><MapPin className="w-3 h-3" />محافظة {submission.governorate_name_ar}</div>
+                      {flag && (
+                        <span className={`mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[8px] font-extrabold ${flag.badgeClass}`}>
+                          {flag.icon}
+                          {flag.label}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span className="inline-flex items-center gap-1.5 text-slate-600 tabular-nums"><CalendarDays className="w-3.5 h-3.5 text-slate-400" />{submission.submission_date}</span>
