@@ -228,15 +228,59 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
         }}
         renderActions={(sub) => (
           <>
-            <button onClick={() => setConfirmation({ type: 'override', districtId: sub.district_id })} className="h-8 px-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-[8px] font-extrabold inline-flex items-center gap-1">
-              <Unlock className="w-3 h-3" /> فتح مؤقت
-            </button>
-            <button onClick={() => { setSelectedSub(sub); setIsReturning(true); }} className="h-8 px-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[8px] font-extrabold inline-flex items-center gap-1">
-              <RotateCcw className="w-3 h-3" /> إرجاع
-            </button>
-            <button onClick={() => setConfirmation({ type: 'approve', districtId: sub.district_id })} className="h-8 px-2.5 rounded-lg bg-[#147d64] border border-[#147d64] text-white text-[8px] font-extrabold inline-flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3" /> اعتماد
-            </button>
+            <div className="relative group">
+              <button
+                onClick={() => setConfirmation({ type: 'override', districtId: sub.district_id })}
+                className="h-8 px-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-[8px] font-extrabold inline-flex items-center gap-1"
+              >
+                <Unlock className="w-3 h-3" /> فتح مؤقت
+              </button>
+              <div className="pointer-events-none absolute z-50 bottom-full right-1/2 translate-x-1/2 mb-2 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150">
+                <div className="rounded-xl bg-slate-900 text-white px-3 py-2.5 shadow-xl text-[9px] leading-5">
+                  <div className="font-extrabold mb-0.5">فتح استثنائي لمدة 30 دقيقة</div>
+                  <div className="text-slate-300">
+                    يسمح للإدارة الصحية بتعديل البيان بعد انتهاء وقت الإدخال بدون اعتباره بيانًا مُرجعًا.
+                  </div>
+                </div>
+                <div className="w-2.5 h-2.5 bg-slate-900 rotate-45 mx-auto -mt-1.5" />
+              </div>
+            </div>
+
+            <div className="relative group">
+              <button
+                onClick={() => { setSelectedSub(sub); setIsReturning(true); }}
+                className="h-8 px-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[8px] font-extrabold inline-flex items-center gap-1"
+              >
+                <RotateCcw className="w-3 h-3" /> إرجاع
+              </button>
+              <div className="pointer-events-none absolute z-50 bottom-full right-1/2 translate-x-1/2 mb-2 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150">
+                <div className="rounded-xl bg-slate-900 text-white px-3 py-2.5 shadow-xl text-[9px] leading-5">
+                  <div className="font-extrabold mb-0.5">إرجاع البيان للتعديل</div>
+                  <div className="text-slate-300">
+                    يستخدم عند وجود خطأ أو نقص. يجب كتابة سبب الإرجاع، ويُعاد فتح البيان للإدارة الصحية لتصحيحه وإرساله مرة أخرى.
+                  </div>
+                </div>
+                <div className="w-2.5 h-2.5 bg-slate-900 rotate-45 mx-auto -mt-1.5" />
+              </div>
+            </div>
+
+            <div className="relative group">
+              <button
+                onClick={() => setConfirmation({ type: 'approve', districtId: sub.district_id })}
+                className="h-8 px-2.5 rounded-lg bg-[#147d64] border border-[#147d64] text-white text-[8px] font-extrabold inline-flex items-center gap-1"
+              >
+                <CheckCircle2 className="w-3 h-3" /> اعتماد
+              </button>
+              <div className="pointer-events-none absolute z-50 bottom-full right-1/2 translate-x-1/2 mb-2 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150">
+                <div className="rounded-xl bg-slate-900 text-white px-3 py-2.5 shadow-xl text-[9px] leading-5">
+                  <div className="font-extrabold mb-0.5">اعتماد بيان الإدارة الصحية</div>
+                  <div className="text-slate-300">
+                    يؤكد انتهاء مراجعة المديرية ويعتمد البيان للانتقال إلى المستوى التالي من المراجعة.
+                  </div>
+                </div>
+                <div className="w-2.5 h-2.5 bg-slate-900 rotate-45 mx-auto -mt-1.5" />
+              </div>
+            </div>
           </>
         )}
       />
