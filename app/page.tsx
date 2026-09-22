@@ -22,7 +22,6 @@ import {
   LayoutDashboard, 
   FileSpreadsheet, 
   ShieldCheck, 
-  Layers
 } from 'lucide-react';
 
 export default function MasarPlatformPage() {
@@ -95,7 +94,7 @@ export default function MasarPlatformPage() {
     };
 
     updateLock();
-    const interval = setInterval(updateLock, 1000);
+    const interval = setInterval(updateLock, 15_000);
     return () => clearInterval(interval);
   }, [submissions, user]);
 

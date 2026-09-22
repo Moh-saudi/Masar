@@ -12,6 +12,55 @@ interface AuthContextType {
   logout: () => Promise<void>;
 }
 
+const PROFILE_COLUMNS = [
+  'id',
+  'email',
+  'full_name',
+  'national_id',
+  'role',
+  'role_title_ar',
+  'active',
+  'governorate_id',
+  'governorate_name_ar',
+  'district_id',
+  'district_name_ar',
+].join(',');
+
+type ProfileRow = UserProfile & { active?: boolean };
+
+const profilePromiseCache = new Map<string, Promise<ProfileRow | null>>();
+
+function clearProfileCache(userId?: string) {
+  if (userId) profilePromiseCache.delete(userId);
+  else profilePromiseCache.clear();
+}
+
+async function fetchProfile(userId: string): Promise<ProfileRow | null> {
+  const cached = profilePromiseCache.get(userId);
+  if (cached) return cached;
+
+  const request = (async () => {
+    const supabase = createBrowserClient();
+    const { data, error } = await supabase
+      .from('profiles')
+      .select(PROFILE_COLUMNS)
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return (data as ProfileRow | null) ?? null;
+  })();
+
+  profilePromiseCache.set(userId, request);
+
+  try {
+    return await request;
+  } catch (error) {
+    profilePromiseCache.delete(userId);
+    throw error;
+  }
+}
+
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
@@ -34,31 +83,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const supabase = createBrowserClient();
     let mounted = true;
 
-    async function loadSession() {
-      const { data } = await supabase.auth.getSession();
-
-      if (!data.session) {
-        if (mounted) setLoading(false);
+    async function applySession(userId?: string) {
+      if (!userId) {
+        if (mounted) {
+          setUser(null);
+          setLoading(false);
+        }
         return;
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', data.session.user.id)
-        .single();
+      try {
+        const profile = await fetchProfile(userId);
 
-      if (mounted && profile) {
-        setUser(profile as UserProfile);
+        if (!mounted) return;
+
+        if (!profile || profile.active === false) {
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
+        setUser(profile);
+      } catch (error) {
+        console.error('Failed to load user profile.', error);
+        if (mounted) setUser(null);
+      } finally {
+        if (mounted) setLoading(false);
       }
-
-      if (mounted) setLoading(false);
     }
 
-    loadSession();
+    supabase.auth.getSession().then(({ data }) => {
+      void applySession(data.session?.user.id);
+    });
 
-    const { data: listener } = supabase.auth.onAuthStateChange(() => {
-      loadSession();
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        clearProfileCache();
+        if (mounted) {
+          setUser(null);
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (session?.user.id) {
+        void applySession(session.user.id);
+      }
     });
 
     return () => {
@@ -86,18 +156,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: error?.message || 'Login failed' };
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', data.user.id)
-      .single();
+    try {
+      const profile = await fetchProfile(data.user.id);
 
-    if (profile) setUser(profile as UserProfile);
+      if (!profile) {
+        await supabase.auth.signOut();
+        return { success: false, error: 'PROFILE_NOT_FOUND' };
+      }
 
-    return { success: true };
+      if (profile.active === false) {
+        await supabase.auth.signOut();
+        return { success: false, error: 'ACCOUNT_DISABLED' };
+      }
+
+      setUser(profile);
+      return { success: true };
+    } catch {
+      await supabase.auth.signOut();
+      return { success: false, error: 'PROFILE_LOAD_FAILED' };
+    }
   }
 
   async function logout() {
+    clearProfileCache();
+
     if (!configured) {
       setUser(null);
       return;

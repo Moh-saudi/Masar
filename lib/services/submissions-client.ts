@@ -1,8 +1,9 @@
 import { createBrowserClient } from '@/lib/supabase/client'
 import type { DailySubmission, UserProfile } from '@/lib/types'
 import { getCairoDateString } from '@/lib/date'
+import { invalidateAuditTrailCache } from './audit-client'
 
-const SUBMISSION_COLUMNS = [
+const SUBMISSION_LIST_COLUMNS = [
   'id',
   'submission_date',
   'district_id',
@@ -21,11 +22,22 @@ const SUBMISSION_COLUMNS = [
   'returned_by',
   'returned_at',
   'sections',
-  'history_logs',
-  'created_by',
   'created_at',
   'updated_at',
 ].join(',')
+
+const SUBMISSION_DETAIL_COLUMNS = [
+  SUBMISSION_LIST_COLUMNS,
+  'history_logs',
+  'created_by',
+].join(',')
+
+function hydrateListRow(row: any): DailySubmission {
+  return {
+    ...row,
+    history_logs: row.history_logs ?? {},
+  } as DailySubmission
+}
 
 function toDatabasePayload(submission: DailySubmission, user?: UserProfile) {
   const payload: Record<string, unknown> = {
@@ -49,10 +61,7 @@ function toDatabasePayload(submission: DailySubmission, user?: UserProfile) {
     history_logs: submission.history_logs ?? {},
   }
 
-  // created_by is written only when we have an actor. Database-side values on
-  // existing rows should not be blanked during review/approval updates.
   if (user?.id) payload.created_by = user.id
-
   return payload
 }
 
@@ -74,20 +83,56 @@ export interface SubmissionPageResult {
   totalPages: number
 }
 
-export async function fetchSubmissionPage(
-  options: SubmissionPageOptions = {}
-): Promise<SubmissionPageResult> {
-  const supabase = createBrowserClient()
+export interface ReportPeriodSummaryRow {
+  code: number
+  total1: number
+  total2: number
+  total3: number
+  daysWithData: number
+}
+
+export interface ReportPeriodDailyRow {
+  date: string
+  code: number
+  field1: number
+  field2: number
+  field3: number
+  hasData: boolean
+}
+
+export interface ReportPeriodAnalytics {
+  summary: ReportPeriodSummaryRow[]
+  daily: ReportPeriodDailyRow[]
+  dateCount: number
+}
+
+export interface ReportPeriodBundle extends SubmissionPageResult {
+  analytics: ReportPeriodAnalytics | null
+  analyticsComplete: boolean
+}
+
+let reportBundleRpcUnavailable = false
+
+function normalizePageOptions(options: SubmissionPageOptions) {
   const page = Math.max(1, options.page ?? 1)
   const pageSize = Math.min(200, Math.max(1, options.pageSize ?? 50))
   const fromDate = options.fromDate ?? getCairoDateString()
   const toDate = options.toDate ?? fromDate
+
+  return { page, pageSize, fromDate, toDate }
+}
+
+export async function fetchSubmissionPage(
+  options: SubmissionPageOptions = {}
+): Promise<SubmissionPageResult> {
+  const supabase = createBrowserClient()
+  const { page, pageSize, fromDate, toDate } = normalizePageOptions(options)
   const from = (page - 1) * pageSize
   const to = from + pageSize - 1
 
   let query = supabase
     .from('daily_submissions')
-    .select(SUBMISSION_COLUMNS, { count: 'exact' })
+    .select(SUBMISSION_LIST_COLUMNS, { count: 'exact' })
     .gte('submission_date', fromDate)
     .lte('submission_date', toDate)
 
@@ -112,7 +157,7 @@ export async function fetchSubmissionPage(
 
   const total = count ?? 0
   return {
-    rows: (data ?? []) as DailySubmission[],
+    rows: (data ?? []).map(hydrateListRow),
     count: total,
     page,
     pageSize,
@@ -120,17 +165,107 @@ export async function fetchSubmissionPage(
   }
 }
 
-export async function fetchDailySubmissions(date = getCairoDateString()): Promise<DailySubmission[]> {
+export async function fetchReportPeriodBundle(
+  options: SubmissionPageOptions = {}
+): Promise<ReportPeriodBundle> {
+  const normalized = normalizePageOptions(options)
+
+  if (!reportBundleRpcUnavailable) {
+    const supabase = createBrowserClient()
+    const { data, error } = await supabase.rpc('report_period_bundle', {
+      p_from: normalized.fromDate,
+      p_to: normalized.toDate,
+      p_page: normalized.page,
+      p_page_size: normalized.pageSize,
+      p_governorate_name: options.governorateName ?? null,
+      p_district_name: options.districtName ?? null,
+      p_status: options.status ?? null,
+    })
+
+    if (!error && data) {
+      const payload = data as any
+      const total = Number(payload.count ?? 0)
+      const rows = Array.isArray(payload.rows) ? payload.rows.map(hydrateListRow) : []
+      const summary = Array.isArray(payload.summary)
+        ? payload.summary.map((row: any) => ({
+            code: Number(row.code),
+            total1: Number(row.total1 ?? 0),
+            total2: Number(row.total2 ?? 0),
+            total3: Number(row.total3 ?? 0),
+            daysWithData: Number(row.days_with_data ?? row.daysWithData ?? 0),
+          }))
+        : []
+      const daily = Array.isArray(payload.daily)
+        ? payload.daily.map((row: any) => ({
+            date: String(row.date),
+            code: Number(row.code),
+            field1: Number(row.field1 ?? 0),
+            field2: Number(row.field2 ?? 0),
+            field3: Number(row.field3 ?? 0),
+            hasData: Boolean(row.has_data ?? row.hasData),
+          }))
+        : []
+
+      return {
+        rows,
+        count: total,
+        page: normalized.page,
+        pageSize: normalized.pageSize,
+        totalPages: Math.max(1, Math.ceil(total / normalized.pageSize)),
+        analytics: {
+          summary,
+          daily,
+          dateCount: new Set(daily.map((row: ReportPeriodDailyRow) => row.date)).size,
+        },
+        analyticsComplete: true,
+      }
+    }
+
+    const functionMissing =
+      error?.code === 'PGRST202' ||
+      error?.code === '42883' ||
+      error?.message?.includes('report_period_bundle')
+
+    if (!functionMissing && error) throw error
+    reportBundleRpcUnavailable = true
+  }
+
+  const pageResult = await fetchSubmissionPage(options)
+  const analyticsComplete = pageResult.count <= pageResult.rows.length
+
+  return {
+    ...pageResult,
+    analytics: null,
+    analyticsComplete,
+  }
+}
+
+export async function fetchDailySubmissions(
+  date = getCairoDateString()
+): Promise<DailySubmission[]> {
   const supabase = createBrowserClient()
 
   const { data, error } = await supabase
     .from('daily_submissions')
-    .select(SUBMISSION_COLUMNS)
+    .select(SUBMISSION_LIST_COLUMNS)
     .eq('submission_date', date)
     .order('updated_at', { ascending: false })
 
   if (error) throw error
-  return (data ?? []) as DailySubmission[]
+  return (data ?? []).map(hydrateListRow)
+}
+
+export async function fetchSubmissionDetails(id: string): Promise<DailySubmission> {
+  const supabase = createBrowserClient()
+
+  const { data, error } = await supabase
+    .from('daily_submissions')
+    .select(SUBMISSION_DETAIL_COLUMNS)
+    .eq('id', id)
+    .single()
+
+  if (error) throw error
+  return data as DailySubmission
 }
 
 export async function persistDailySubmission(
@@ -144,7 +279,7 @@ export async function persistDailySubmission(
     .upsert(toDatabasePayload(submission, user), {
       onConflict: 'submission_date,district_id',
     })
-    .select(SUBMISSION_COLUMNS)
+    .select(SUBMISSION_DETAIL_COLUMNS)
     .single()
 
   if (error) throw error
@@ -169,6 +304,7 @@ export async function writeAuditEvent(input: {
   })
 
   if (error) throw error
+  invalidateAuditTrailCache()
 }
 
 export async function approveNationalReport(user: UserProfile) {
@@ -179,7 +315,7 @@ export async function approveNationalReport(user: UserProfile) {
     .from('daily_submissions')
     .update({ ministry_status: 'APPROVED' })
     .eq('submission_date', today)
-    .select(SUBMISSION_COLUMNS)
+    .select(SUBMISSION_LIST_COLUMNS)
 
   if (error) throw error
 
@@ -196,5 +332,5 @@ export async function approveNationalReport(user: UserProfile) {
     },
   })
 
-  return (data ?? []) as DailySubmission[]
+  return (data ?? []).map(hydrateListRow)
 }

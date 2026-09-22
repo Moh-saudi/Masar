@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { DailySubmission } from '@/lib/types';
 import { SECTIONS_DEFINITIONS } from '@/lib/constants';
+import { fetchSubmissionDetails } from '@/lib/services/submissions-client';
 import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Clock3, Eye, MapPin, ShieldAlert, ShieldCheck, X } from 'lucide-react';
 
 interface SubmissionMonitoringTableProps {
@@ -10,6 +11,7 @@ interface SubmissionMonitoringTableProps {
   title?: string;
   description?: string;
   pageSize?: number;
+  paginateLocally?: boolean;
   deadline?: string;
   emptyMessage?: string;
   onView?: (submission: DailySubmission) => void;
@@ -116,6 +118,7 @@ export const SubmissionMonitoringTable: React.FC<SubmissionMonitoringTableProps>
   title = 'متابعة جهات الإدخال',
   description = 'صف واحد لكل جهة، والتفاصيل تظهر عند الطلب دون أي استدعاء إضافي لقاعدة البيانات.',
   pageSize = 50,
+  paginateLocally = true,
   deadline = '15:00',
   emptyMessage = 'لا توجد بيانات مطابقة.',
   onView,
@@ -123,6 +126,8 @@ export const SubmissionMonitoringTable: React.FC<SubmissionMonitoringTableProps>
 }) => {
   const [page, setPage] = useState(1);
   const [localDetails, setLocalDetails] = useState<DailySubmission | null>(null);
+  const [loadingDetailsId, setLoadingDetailsId] = useState<string | null>(null);
+  const detailsCache = useRef(new Map<string, DailySubmission>());
 
   const rows = useMemo(() => [...submissions].sort((a, b) => {
     const aTime = new Date(a.updated_at || a.created_at || a.submission_date).getTime();
@@ -130,18 +135,40 @@ export const SubmissionMonitoringTable: React.FC<SubmissionMonitoringTableProps>
     return bTime - aTime;
   }), [submissions]);
 
-  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
-  const safePage = Math.min(page, totalPages);
+  const totalPages = paginateLocally ? Math.max(1, Math.ceil(rows.length / pageSize)) : 1;
+  const safePage = paginateLocally ? Math.min(page, totalPages) : 1;
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
 
-  const visibleRows = rows.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const visibleRows = paginateLocally
+    ? rows.slice((safePage - 1) * pageSize, safePage * pageSize)
+    : rows;
 
-  const handleView = (submission: DailySubmission) => {
-    if (onView) onView(submission);
-    else setLocalDetails(submission);
+  const handleView = async (submission: DailySubmission) => {
+    if (onView) {
+      onView(submission);
+      return;
+    }
+
+    const cached = detailsCache.current.get(submission.id);
+    if (cached) {
+      setLocalDetails(cached);
+      return;
+    }
+
+    setLoadingDetailsId(submission.id);
+    try {
+      const details = await fetchSubmissionDetails(submission.id);
+      detailsCache.current.set(submission.id, details);
+      setLocalDetails(details);
+    } catch (error) {
+      console.error('Failed to load submission details.', error);
+      setLocalDetails(submission);
+    } finally {
+      setLoadingDetailsId(null);
+    }
   };
 
   return (
@@ -221,8 +248,13 @@ export const SubmissionMonitoringTable: React.FC<SubmissionMonitoringTableProps>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-center items-center gap-1.5 flex-wrap">
-                        <button onClick={() => handleView(submission)} className="h-8 px-3 rounded-lg gov-btn-secondary text-[9px] font-extrabold inline-flex items-center gap-1.5">
-                          <Eye className="w-3.5 h-3.5" /> التفاصيل
+                        <button
+                          onClick={() => void handleView(submission)}
+                          disabled={loadingDetailsId === submission.id}
+                          className="h-8 px-3 rounded-lg gov-btn-secondary text-[9px] font-extrabold inline-flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          {loadingDetailsId === submission.id ? 'جاري التحميل...' : 'التفاصيل'}
                         </button>
                         {renderActions?.(submission)}
                       </div>
@@ -234,7 +266,7 @@ export const SubmissionMonitoringTable: React.FC<SubmissionMonitoringTableProps>
           </table>
         </div>
 
-        {rows.length > pageSize && (
+        {paginateLocally && rows.length > pageSize && (
           <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between gap-3 bg-[#fbfcfd]">
             <div className="text-[9px] text-slate-500">عرض {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, rows.length)} من {rows.length}</div>
             <div className="flex items-center gap-2">

@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { DailySubmission, UserProfile } from '@/lib/types';
 import { SECTIONS_DEFINITIONS, SAMPLE_GOVERNORATES } from '@/lib/constants';
 import { exportToStyledExcel, exportToExcelFile } from '@/lib/excel-export';
-import { fetchSubmissionPage } from '@/lib/services/submissions-client';
+import { fetchReportPeriodBundle, type ReportPeriodAnalytics } from '@/lib/services/submissions-client';
 import { getCairoDateString } from '@/lib/date';
 import { SubmissionMonitoringTable, formatCairoDateTime } from './SubmissionMonitoringTable';
 import {
@@ -67,6 +67,8 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
   const [loadingRange, setLoadingRange] = useState(false);
   const [rangeError, setRangeError] = useState('');
   const [periodView, setPeriodView] = useState<'summary' | 'daily' | null>(null);
+  const [periodAnalytics, setPeriodAnalytics] = useState<ReportPeriodAnalytics | null>(null);
+  const [analyticsComplete, setAnalyticsComplete] = useState(true);
 
   const sourceSubmissions = remoteRows ?? submissions;
 
@@ -136,14 +138,62 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
 
   const isMultiDay = fromDate !== toDate;
 
-  const uniqueDates = useMemo(
+  const localUniqueDates = useMemo(
     () => Array.from(new Set(filteredSubmissions.map(sub => sub.submission_date))).sort(),
     [filteredSubmissions]
   );
 
+  const uniqueDates = useMemo(
+    () =>
+      periodAnalytics
+        ? Array.from(new Set(periodAnalytics.daily.map(row => row.date))).sort()
+        : localUniqueDates,
+    [periodAnalytics, localUniqueDates]
+  );
+
   const periodSummary = useMemo(() => {
     return SECTIONS_DEFINITIONS.map(def => {
-      const dailyValues = uniqueDates.map(date => {
+      if (periodAnalytics) {
+        const summary = periodAnalytics.summary.find(row => row.code === def.code);
+        const dailyValues = periodAnalytics.daily
+          .filter(row => row.code === def.code)
+          .map(row => ({
+            date: row.date,
+            field1: row.field1,
+            field2: row.field2,
+            field3: row.field3,
+            hasData: row.hasData,
+          }));
+
+        const total1 = summary?.total1 ?? 0;
+        const total2 = summary?.total2 ?? 0;
+        const total3 = summary?.total3 ?? 0;
+        const scoredDays = dailyValues.map(day => ({
+          date: day.date,
+          total: day.field1 + day.field2 + day.field3,
+        }));
+        const highest = scoredDays.length
+          ? scoredDays.reduce((best, day) => (day.total > best.total ? day : best))
+          : { date: '—', total: 0 };
+        const lowest = scoredDays.length
+          ? scoredDays.reduce((best, day) => (day.total < best.total ? day : best))
+          : { date: '—', total: 0 };
+        const dayCount = periodAnalytics.dateCount || uniqueDates.length;
+
+        return {
+          code: def.code,
+          name: def.name_ar,
+          total1,
+          total2,
+          total3,
+          average: dayCount ? Math.round((total1 + total2 + total3) / dayCount) : 0,
+          highest,
+          lowest,
+          daysWithData: summary?.daysWithData ?? 0,
+        };
+      }
+
+      const dailyValues = localUniqueDates.map(date => {
         const sameDay = filteredSubmissions.filter(sub => sub.submission_date === date);
         const totalsForDay = sameDay.reduce(
           (acc, sub) => {
@@ -169,10 +219,10 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
         total: day.field1 + day.field2 + day.field3,
       }));
       const highest = scoredDays.length
-        ? scoredDays.reduce((best, day) => day.total > best.total ? day : best)
+        ? scoredDays.reduce((best, day) => (day.total > best.total ? day : best))
         : { date: '—', total: 0 };
       const lowest = scoredDays.length
-        ? scoredDays.reduce((best, day) => day.total < best.total ? day : best)
+        ? scoredDays.reduce((best, day) => (day.total < best.total ? day : best))
         : { date: '—', total: 0 };
 
       return {
@@ -181,16 +231,36 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
         total1,
         total2,
         total3,
-        average: uniqueDates.length ? Math.round((total1 + total2 + total3) / uniqueDates.length) : 0,
+        average: localUniqueDates.length
+          ? Math.round((total1 + total2 + total3) / localUniqueDates.length)
+          : 0,
         highest,
         lowest,
         daysWithData,
       };
     });
-  }, [filteredSubmissions, uniqueDates]);
+  }, [periodAnalytics, filteredSubmissions, localUniqueDates, uniqueDates.length]);
 
   const dailyMatrix = useMemo(() => {
-    return uniqueDates.map(date => {
+    if (periodAnalytics) {
+      return uniqueDates.map(date => ({
+        date,
+        sections: SECTIONS_DEFINITIONS.map(def => {
+          const row = periodAnalytics.daily.find(
+            daily => daily.date === date && daily.code === def.code
+          );
+          return {
+            code: def.code,
+            name: def.name_ar,
+            field1: row?.field1 ?? 0,
+            field2: row?.field2 ?? 0,
+            field3: row?.field3 ?? 0,
+          };
+        }),
+      }));
+    }
+
+    return localUniqueDates.map(date => {
       const sameDay = filteredSubmissions.filter(sub => sub.submission_date === date);
       return {
         date,
@@ -214,7 +284,7 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
         }),
       };
     });
-  }, [filteredSubmissions, uniqueDates]);
+  }, [periodAnalytics, uniqueDates, localUniqueDates, filteredSubmissions]);
 
   const exportRows = useMemo(() => {
     const rows: Record<string, string | number>[] = [];
@@ -314,13 +384,15 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
       setResultCount(submissions.length);
       setServerPage(1);
       setServerTotalPages(1);
+      setPeriodAnalytics(null);
+      setAnalyticsComplete(true);
       return;
     }
 
     setLoadingRange(true);
 
     try {
-      const result = await fetchSubmissionPage({
+      const result = await fetchReportPeriodBundle({
         fromDate,
         toDate,
         page,
@@ -334,6 +406,8 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
       setResultCount(result.count);
       setServerPage(result.page);
       setServerTotalPages(result.totalPages);
+      setPeriodAnalytics(result.analytics);
+      setAnalyticsComplete(result.analyticsComplete);
     } catch {
       setRangeError('تعذر تحميل الفترة المطلوبة. أعد المحاولة.');
     } finally {
@@ -354,6 +428,8 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
     setServerPage(1);
     setServerTotalPages(1);
     setRangeError('');
+    setPeriodAnalytics(null);
+    setAnalyticsComplete(true);
   };
 
   return (
@@ -592,7 +668,7 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
         ))}
       </div>
 
-      {isMultiDay && filteredSubmissions.length > 0 && (
+      {isMultiDay && filteredSubmissions.length > 0 && analyticsComplete && (
         <div className="gov-surface px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <div className="text-[10px] font-extrabold text-[#172033]">تحليل الفترة المحددة</div>
@@ -619,8 +695,15 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
         </div>
       )}
 
+      {isMultiDay && !analyticsComplete && (
+        <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-[9px] text-amber-800">
+          ملخص الفترة الكاملة يحتاج تحديث قاعدة البيانات الجديد. عرض السجلات الحالي يعمل بصورة طبيعية، وسيتم تفعيل التجميع الكامل بعد تطبيق الـmigration.
+        </div>
+      )}
+
       <SubmissionMonitoringTable
         submissions={filteredSubmissions}
+        paginateLocally={remoteRows === null}
         title="السجلات اليومية"
         description="الأحمر للسجلات المتأخرة، والأصفر لطلبات الفتح، والأزرق للفتح الاستثنائي النشط."
       />
