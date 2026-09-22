@@ -1,4 +1,12 @@
 -- Role based access for daily submissions
+-- Ensure geography columns exist before policies reference them. This keeps
+-- fresh migration chains executable even before the later hardening migration.
+
+alter table public.profiles
+  add column if not exists governorate_id text,
+  add column if not exists district_id text;
+
+drop policy if exists "district users access own district" on public.daily_submissions;
 
 create policy "district users access own district"
 on public.daily_submissions
