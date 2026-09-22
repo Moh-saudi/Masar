@@ -21,6 +21,7 @@ interface AdminUsersPortalProps {
   auditLogs: AuditLog[];
   submissions: DailySubmission[];
   currentUser: UserProfile;
+  onLoadAuditLogs?: () => Promise<void>;
 }
 
 type AdminTab = 'users' | 'hierarchy' | 'audit';
@@ -30,10 +31,17 @@ export const AdminUsersPortal: React.FC<AdminUsersPortalProps> = ({
   auditLogs,
   submissions,
   currentUser,
+  onLoadAuditLogs,
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('users');
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState<AdminUser[]>([]);
+
+  useEffect(() => {
+    if (activeTab === 'audit') {
+      void onLoadAuditLogs?.();
+    }
+  }, [activeTab, onLoadAuditLogs]);
 
   useEffect(() => {
     let mounted = true;

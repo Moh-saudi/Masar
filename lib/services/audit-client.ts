@@ -1,14 +1,14 @@
 import { createBrowserClient } from '@/lib/supabase/client'
 import type { AuditLog } from '@/lib/types'
 
-export async function fetchAuditTrail(): Promise<AuditLog[]> {
+export async function fetchAuditTrail(limit = 100): Promise<AuditLog[]> {
   const supabase = createBrowserClient()
 
   const { data, error } = await supabase
     .from('audit_logs')
-    .select('*')
+    .select('id, action, entity, entity_id, metadata, created_at')
     .order('created_at', { ascending: false })
-    .limit(250)
+    .limit(Math.min(250, Math.max(1, limit)))
 
   if (error) throw error
 

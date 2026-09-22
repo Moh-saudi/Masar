@@ -45,31 +45,35 @@ export default function MasarPlatformPage() {
     override_minutes_remaining: 0,
   });
 
-  // مزامنة البيانات
+  // تحميل البيانات التشغيلية لليوم فقط. كل البوابات العليا تشترك في نفس النسخة بالذاكرة.
   const reloadData = useCallback(async () => {
     if (!configured || !user) return;
 
     try {
-      const [subs, logs] = await Promise.all([
-        fetchDailySubmissions(),
-        fetchAuditTrail().catch(() => []),
-      ]);
-
-      if (subs.length > 0) {
-        setSubmissions(subs);
-      } else {
-        MasarService.initialize();
-        setSubmissions([...MasarService.getSubmissions()]);
-      }
-
-      setAuditLogs(logs.length > 0 ? logs : [...MasarService.getAuditLogs()]);
+      const subs = await fetchDailySubmissions();
+      setSubmissions(subs);
     } catch (error) {
-      console.warn('Database load failed; using local fallback.', error);
-      MasarService.initialize();
-      setSubmissions([...MasarService.getSubmissions()]);
-      setAuditLogs([...MasarService.getAuditLogs()]);
+      console.error('Failed to load today submissions.', error);
+      setSubmissions([]);
     }
   }, [configured, user]);
+
+  // سجل التدقيق تحميل كسول عند فتحه بدل طلبه مع كل تحميل للصفحة.
+  const loadAuditLogs = useCallback(async () => {
+    if (!configured || !user) return;
+    try {
+      const logs = await fetchAuditTrail(100);
+      setAuditLogs(logs);
+    } catch (error) {
+      console.error('Failed to load audit trail.', error);
+      setAuditLogs([]);
+    }
+  }, [configured, user]);
+
+  const openAuditLogs = useCallback(async () => {
+    setShowAuditModal(true);
+    await loadAuditLogs();
+  }, [loadAuditLogs]);
 
   useEffect(() => {
     if (configured && user) {
@@ -136,7 +140,7 @@ export default function MasarPlatformPage() {
       {/* 1. ترويسة الصفحة الرسمية الموحدة */}
       <Header
         currentProfile={user}
-        onOpenAuditLogs={() => setShowAuditModal(true)}
+        onOpenAuditLogs={openAuditLogs}
       />
 
       {/* 2. شريط التوقيت والحوكمة السيادي الصارم */}
@@ -226,6 +230,7 @@ export default function MasarPlatformPage() {
                 auditLogs={auditLogs}
                 submissions={submissions}
                 currentUser={user}
+                onLoadAuditLogs={loadAuditLogs}
               />
             )}
             {adminActiveTab === 'ministry' && (
