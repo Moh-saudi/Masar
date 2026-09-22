@@ -5,6 +5,7 @@ import { DailySubmission, UserProfile, TimeLockState } from '@/lib/types';
 import { approveNationalReport } from '@/lib/services/submissions-client';
 import { OperationFeedbackDialog } from './OperationFeedbackDialog';
 import { ConfirmationDialog } from './ConfirmationDialog';
+import { SubmissionMonitoringTable } from './SubmissionMonitoringTable';
 import { 
   Users, 
   HeartHandshake, 
@@ -554,6 +555,12 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
           </div>
         </div>
       )}
+
+      <SubmissionMonitoringTable
+        submissions={submissions}
+        title="المتابعة التشغيلية لجهات الإدخال"
+        description="عرض موحد لجميع الإدارات الصحية على مستوى الجمهورية؛ التصفح والتفاصيل من البيانات المحمّلة دون طلبات إضافية."
+      />
 
       <ConfirmationDialog
         open={showApprovalConfirm}

@@ -7,17 +7,16 @@ import { MasarService } from '@/lib/masar-service';
 import { persistDailySubmission, writeAuditEvent } from '@/lib/services/submissions-client';
 import { OperationFeedbackDialog } from './OperationFeedbackDialog';
 import { ConfirmationDialog } from './ConfirmationDialog';
+import { SubmissionMonitoringTable } from './SubmissionMonitoringTable';
 import {
   CheckCircle2,
   RotateCcw,
   Unlock,
-  Eye,
   Search,
   X,
   AlertCircle,
   Filter,
   ClipboardCheck,
-  Clock3,
   Building2
 } from 'lucide-react';
 
@@ -143,18 +142,6 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
     }
   };
 
-  const statusBadge = (sub: DailySubmission) => {
-    if (sub.directorate_status === 'APPROVED') {
-      return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-[9px] font-extrabold"><CheckCircle2 className="w-3 h-3" />معتمد</span>;
-    }
-    if (sub.status === 'RETURNED' || sub.directorate_status === 'RETURNED') {
-      return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[9px] font-extrabold"><RotateCcw className="w-3 h-3" />مرجع للتعديل</span>;
-    }
-    if (sub.status === 'SUBMITTED_LOCKED') {
-      return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#eef9f7] border border-[#cae9e5] text-[#087f78] text-[9px] font-extrabold"><Clock3 className="w-3 h-3" />بانتظار المراجعة</span>;
-    }
-    return <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 text-[9px] font-bold">قيد الإدخال</span>;
-  };
 
   return (
     <div className="space-y-4">
@@ -203,112 +190,28 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
         </div>
       </div>
 
-      <div className="gov-surface overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-          <span className="text-[11px] font-extrabold text-[#172033]">
-            الإدارات التابعة
-          </span>
-          <span className="text-[10px] text-slate-400 tabular-nums">
-            {filteredSubmissions.length} إدارة
-          </span>
-        </div>
-
-        <div className="divide-y divide-slate-100">
-          {filteredSubmissions.length === 0 && (
-            <div className="py-12 text-center text-[11px] text-slate-400">
-              لا توجد إدارات مطابقة للبحث أو الفلتر الحالي.
-            </div>
-          )}
-
-          {filteredSubmissions.map(sub => {
-            const doneCount = Object.values(sub.sections).filter(s => s.status === 'completed').length;
-            const completion = Math.round((doneCount / 12) * 100);
-            const hasOverride = Boolean(
-              sub.override_active &&
-              sub.override_expires_at &&
-              new Date(sub.override_expires_at).getTime() > Date.now()
-            );
-
-            return (
-              <div key={sub.id} className="px-4 py-4 sm:px-5 hover:bg-[#fbfcfd] transition">
-                <div className="grid grid-cols-1 lg:grid-cols-[minmax(220px,1.2fr)_150px_160px_minmax(300px,1fr)] gap-4 items-center">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-[#f1f6f7] text-[#087f78] flex items-center justify-center flex-shrink-0">
-                        <Building2 className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h3 className="text-[11px] font-extrabold text-[#172033]">{sub.district_name_ar}</h3>
-                        <p className="text-[9px] text-slate-400 mt-1 tabular-nums">{sub.submission_date}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    {statusBadge(sub)}
-                    {hasOverride && (
-                      <div className="mt-1.5 text-[9px] font-bold text-amber-700">فتح استثنائي نشط</div>
-                    )}
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between text-[9px] text-slate-500 mb-1.5">
-                      <span>اكتمال الأقسام</span>
-                      <span className="font-extrabold text-slate-700 tabular-nums">{doneCount}/12</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-[#087f78]"
-                        style={{ width: `${completion}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                    <button
-                      onClick={() => {
-                        setSelectedSub(sub);
-                        setIsReturning(false);
-                      }}
-                      className="h-9 px-3 rounded-lg gov-btn-secondary text-[9px] font-extrabold flex items-center gap-1.5"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      فحص البيان
-                    </button>
-
-                    <button
-                      onClick={() => setConfirmation({ type: 'override', districtId: sub.district_id })}
-                      className="h-9 px-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-[9px] font-extrabold flex items-center gap-1.5 hover:bg-amber-100 transition"
-                    >
-                      <Unlock className="w-3.5 h-3.5" />
-                      فتح مؤقت
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setSelectedSub(sub);
-                        setIsReturning(true);
-                      }}
-                      className="h-9 px-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[9px] font-extrabold flex items-center gap-1.5 hover:bg-rose-100 transition"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      إرجاع
-                    </button>
-
-                    <button
-                      onClick={() => setConfirmation({ type: 'approve', districtId: sub.district_id })}
-                      className="h-9 px-3.5 rounded-lg bg-[#147d64] border border-[#147d64] text-white text-[9px] font-extrabold flex items-center gap-1.5 hover:bg-[#0f6d57] transition"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      اعتماد
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <SubmissionMonitoringTable
+        submissions={filteredSubmissions}
+        title="الإدارات التابعة"
+        description="صف واحد لكل إدارة صحية، مع وقت التسجيل والاكتمال. فتح التفاصيل لا ينفذ طلبًا جديدًا."
+        onView={(sub) => {
+          setSelectedSub(sub);
+          setIsReturning(false);
+        }}
+        renderActions={(sub) => (
+          <>
+            <button onClick={() => setConfirmation({ type: 'override', districtId: sub.district_id })} className="h-8 px-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-[8px] font-extrabold inline-flex items-center gap-1">
+              <Unlock className="w-3 h-3" /> فتح مؤقت
+            </button>
+            <button onClick={() => { setSelectedSub(sub); setIsReturning(true); }} className="h-8 px-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[8px] font-extrabold inline-flex items-center gap-1">
+              <RotateCcw className="w-3 h-3" /> إرجاع
+            </button>
+            <button onClick={() => setConfirmation({ type: 'approve', districtId: sub.district_id })} className="h-8 px-2.5 rounded-lg bg-[#147d64] border border-[#147d64] text-white text-[8px] font-extrabold inline-flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3" /> اعتماد
+            </button>
+          </>
+        )}
+      />
 
       {selectedSub && (
         <div className="fixed inset-0 z-[70] bg-slate-950/45 backdrop-blur-[2px] flex items-center justify-center p-3 sm:p-5">
