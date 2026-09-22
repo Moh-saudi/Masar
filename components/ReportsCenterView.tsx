@@ -19,6 +19,9 @@ import {
   Search,
   ShieldCheck,
   Users,
+  X,
+  TableProperties,
+  Sigma,
 } from 'lucide-react';
 
 interface ReportsCenterViewProps {
@@ -63,6 +66,7 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
   const [serverTotalPages, setServerTotalPages] = useState(1);
   const [loadingRange, setLoadingRange] = useState(false);
   const [rangeError, setRangeError] = useState('');
+  const [periodView, setPeriodView] = useState<'summary' | 'daily' | null>(null);
 
   const sourceSubmissions = remoteRows ?? submissions;
 
@@ -129,6 +133,88 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
 
     return { attendees, referrals, value3 };
   }, [filteredSubmissions]);
+
+  const isMultiDay = fromDate !== toDate;
+
+  const uniqueDates = useMemo(
+    () => Array.from(new Set(filteredSubmissions.map(sub => sub.submission_date))).sort(),
+    [filteredSubmissions]
+  );
+
+  const periodSummary = useMemo(() => {
+    return SECTIONS_DEFINITIONS.map(def => {
+      const dailyValues = uniqueDates.map(date => {
+        const sameDay = filteredSubmissions.filter(sub => sub.submission_date === date);
+        const totalsForDay = sameDay.reduce(
+          (acc, sub) => {
+            const section = sub.sections?.[def.code];
+            acc.field1 += section?.field_1_value || 0;
+            acc.field2 += section?.field_2_value || 0;
+            acc.field3 += section?.field_3_value || 0;
+            if (section && section.status !== 'empty') acc.hasData = true;
+            return acc;
+          },
+          { field1: 0, field2: 0, field3: 0, hasData: false }
+        );
+
+        return { date, ...totalsForDay };
+      });
+
+      const total1 = dailyValues.reduce((sum, day) => sum + day.field1, 0);
+      const total2 = dailyValues.reduce((sum, day) => sum + day.field2, 0);
+      const total3 = dailyValues.reduce((sum, day) => sum + day.field3, 0);
+      const daysWithData = dailyValues.filter(day => day.hasData).length;
+      const scoredDays = dailyValues.map(day => ({
+        date: day.date,
+        total: day.field1 + day.field2 + day.field3,
+      }));
+      const highest = scoredDays.length
+        ? scoredDays.reduce((best, day) => day.total > best.total ? day : best)
+        : { date: '—', total: 0 };
+      const lowest = scoredDays.length
+        ? scoredDays.reduce((best, day) => day.total < best.total ? day : best)
+        : { date: '—', total: 0 };
+
+      return {
+        code: def.code,
+        name: def.name_ar,
+        total1,
+        total2,
+        total3,
+        average: uniqueDates.length ? Math.round((total1 + total2 + total3) / uniqueDates.length) : 0,
+        highest,
+        lowest,
+        daysWithData,
+      };
+    });
+  }, [filteredSubmissions, uniqueDates]);
+
+  const dailyMatrix = useMemo(() => {
+    return uniqueDates.map(date => {
+      const sameDay = filteredSubmissions.filter(sub => sub.submission_date === date);
+      return {
+        date,
+        sections: SECTIONS_DEFINITIONS.map(def => {
+          const totalsForSection = sameDay.reduce(
+            (acc, sub) => {
+              const section = sub.sections?.[def.code];
+              acc.field1 += section?.field_1_value || 0;
+              acc.field2 += section?.field_2_value || 0;
+              acc.field3 += section?.field_3_value || 0;
+              return acc;
+            },
+            { field1: 0, field2: 0, field3: 0 }
+          );
+
+          return {
+            code: def.code,
+            name: def.name_ar,
+            ...totalsForSection,
+          };
+        }),
+      };
+    });
+  }, [filteredSubmissions, uniqueDates]);
 
   const exportRows = useMemo(() => {
     const rows: Record<string, string | number>[] = [];
@@ -506,11 +592,136 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
         ))}
       </div>
 
+      {isMultiDay && filteredSubmissions.length > 0 && (
+        <div className="gov-surface px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <div className="text-[10px] font-extrabold text-[#172033]">تحليل الفترة المحددة</div>
+            <div className="text-[8px] text-slate-400 mt-1">
+              راجع عدة أيام دفعة واحدة بدل فتح كل سجل على حدة.
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setPeriodView('summary')}
+              className="h-9 px-3 rounded-lg gov-btn-secondary text-[9px] font-extrabold inline-flex items-center gap-1.5"
+            >
+              <Sigma className="w-3.5 h-3.5" />
+              ملخص الفترة
+            </button>
+            <button
+              onClick={() => setPeriodView('daily')}
+              className="h-9 px-3 rounded-lg gov-btn-primary text-[9px] font-extrabold inline-flex items-center gap-1.5"
+            >
+              <TableProperties className="w-3.5 h-3.5" />
+              التفصيل اليومي للفترة
+            </button>
+          </div>
+        </div>
+      )}
+
       <SubmissionMonitoringTable
         submissions={filteredSubmissions}
         title="السجلات اليومية"
         description="الأحمر للسجلات المتأخرة، والأصفر لطلبات الفتح، والأزرق للفتح الاستثنائي النشط."
       />
+
+
+      {periodView && (
+        <div className="fixed inset-0 z-[90] bg-slate-950/45 backdrop-blur-[1px] flex items-center justify-center p-3 sm:p-5" onClick={() => setPeriodView(null)}>
+          <div className="w-full max-w-7xl max-h-[90vh] overflow-hidden bg-white rounded-2xl border border-slate-200 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-extrabold text-[#172033]">
+                  {periodView === 'summary' ? 'ملخص الفترة' : 'التفصيل اليومي للفترة'}
+                </h3>
+                <p className="text-[9px] text-slate-500 mt-1">
+                  من {fromDate} إلى {toDate} · {uniqueDates.length} يومًا ظاهرًا في النتائج
+                </p>
+              </div>
+              <button
+                onClick={() => setPeriodView(null)}
+                className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="overflow-auto max-h-[76vh]">
+              {periodView === 'summary' ? (
+                <table className="w-full min-w-[1100px] text-right">
+                  <thead className="sticky top-0 bg-[#f7f9fb] border-b border-slate-200 text-[9px] text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3">القسم</th>
+                      <th className="px-4 py-3 text-center">إجمالي القيمة 1</th>
+                      <th className="px-4 py-3 text-center">إجمالي القيمة 2</th>
+                      <th className="px-4 py-3 text-center">إجمالي القيمة 3</th>
+                      <th className="px-4 py-3 text-center">المتوسط اليومي</th>
+                      <th className="px-4 py-3 text-center">أعلى يوم</th>
+                      <th className="px-4 py-3 text-center">أقل يوم</th>
+                      <th className="px-4 py-3 text-center">أيام بها بيانات</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {periodSummary.map(row => (
+                      <tr key={row.code} className="text-[10px]">
+                        <td className="px-4 py-3">
+                          <div className="font-extrabold text-[#172033]">{row.name}</div>
+                          <div className="text-[8px] text-slate-400 mt-0.5">قسم {row.code}</div>
+                        </td>
+                        <td className="px-4 py-3 text-center font-extrabold tabular-nums">{row.total1.toLocaleString('en-US')}</td>
+                        <td className="px-4 py-3 text-center font-extrabold text-indigo-700 tabular-nums">{row.total2.toLocaleString('en-US')}</td>
+                        <td className="px-4 py-3 text-center font-extrabold text-emerald-700 tabular-nums">{row.total3.toLocaleString('en-US')}</td>
+                        <td className="px-4 py-3 text-center font-bold tabular-nums">{row.average.toLocaleString('en-US')}</td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="font-bold text-slate-700">{row.highest.date}</div>
+                          <div className="text-[8px] text-slate-400">{row.highest.total.toLocaleString('en-US')}</div>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="font-bold text-slate-700">{row.lowest.date}</div>
+                          <div className="text-[8px] text-slate-400">{row.lowest.total.toLocaleString('en-US')}</div>
+                        </td>
+                        <td className="px-4 py-3 text-center font-extrabold tabular-nums">{row.daysWithData}/{uniqueDates.length}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <table className="w-full min-w-[1400px] text-right">
+                  <thead className="sticky top-0 bg-[#f7f9fb] border-b border-slate-200 text-[9px] text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3 min-w-[120px]">التاريخ</th>
+                      {SECTIONS_DEFINITIONS.map(def => (
+                        <th key={def.code} className="px-3 py-3 min-w-[150px] text-center">
+                          <div>{def.name_ar}</div>
+                          <div className="text-[7px] text-slate-400 mt-0.5">1 / 2 / 3</div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {dailyMatrix.map(day => (
+                      <tr key={day.date} className="text-[9px]">
+                        <td className="px-4 py-3 font-extrabold text-[#172033] tabular-nums">{day.date}</td>
+                        {day.sections.map(section => (
+                          <td key={section.code} className="px-3 py-3 text-center">
+                            <div className="inline-flex items-center gap-1.5 tabular-nums">
+                              <span className="font-extrabold text-slate-800">{section.field1.toLocaleString('en-US')}</span>
+                              <span className="text-slate-300">/</span>
+                              <span className="font-extrabold text-indigo-700">{section.field2.toLocaleString('en-US')}</span>
+                              <span className="text-slate-300">/</span>
+                              <span className="font-extrabold text-emerald-700">{section.field3.toLocaleString('en-US')}</span>
+                            </div>
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {remoteRows !== null && serverTotalPages > 1 && (
         <div className="gov-surface px-4 py-2.5 flex items-center justify-between gap-3">
