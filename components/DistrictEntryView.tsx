@@ -60,7 +60,11 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
   const [operationError, setOperationError] = useState<{ title: string; message: string } | null>(null);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
+  const isReturnedForCorrection =
+    submission.status === 'RETURNED' || submission.directorate_status === 'RETURNED';
+
   const isLocked =
+    !isReturnedForCorrection &&
     (timeLock.is_district_locked || submission.status === 'SUBMITTED_LOCKED') &&
     !timeLock.has_active_override;
 
@@ -312,6 +316,18 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
           )}
         </div>
       </div>
+
+      {isReturnedForCorrection && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 text-rose-800 px-4 py-3 flex items-start gap-2 text-[11px]">
+          <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <div>
+            <div className="font-extrabold">البيان مُرجع للتصحيح</div>
+            <div className="mt-1 text-rose-700">
+              يحق للإدارة الصحية صاحبة البيان تعديل البيانات المطلوبة ثم إعادة إرسالها للمديرية للمراجعة.
+            </div>
+          </div>
+        </div>
+      )}
 
       {statusMessage && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 px-4 py-3 flex items-center gap-2 text-[11px] font-bold">

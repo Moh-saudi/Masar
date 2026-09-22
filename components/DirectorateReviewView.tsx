@@ -5,7 +5,6 @@ import { DailySubmission, UserProfile, TimeLockState } from '@/lib/types';
 import { SECTIONS_DEFINITIONS } from '@/lib/constants';
 import {
   approveDirectorateSubmission,
-  grantDirectorateOverride,
   returnDirectorateSubmission,
   writeAuditEvent,
 } from '@/lib/services/submissions-client';
@@ -15,7 +14,6 @@ import { SubmissionMonitoringTable } from './SubmissionMonitoringTable';
 import {
   CheckCircle2,
   RotateCcw,
-  Unlock,
   Search,
   X,
   AlertCircle,
@@ -45,7 +43,7 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<FilterState>('all');
   const [operationError, setOperationError] = useState<{ title: string; message: string } | null>(null);
-  const [confirmation, setConfirmation] = useState<{ type: 'override' | 'approve'; districtId: string } | null>(null);
+  const [confirmation, setConfirmation] = useState<{ type: 'approve'; districtId: string } | null>(null);
 
   const filteredSubmissions = useMemo(() => {
     if (!user.governorate_id) return [];
@@ -103,37 +101,6 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
       setOperationError({
         title: 'تعذر إرجاع البيان',
         message: 'لم نتمكن من إرجاع البيان للإدارة الصحية الآن. أعد المحاولة، وإذا استمرت المشكلة تواصل مع الدعم الفني.',
-      });
-    }
-  };
-
-  const handleGrantOverride = async (districtId: string) => {
-    try {
-      const currentSubmission = user.governorate_id
-        ? submissions.find(
-            s => s.district_id === districtId && s.governorate_id === user.governorate_id
-          )
-        : undefined;
-      if (!currentSubmission) throw new Error('SUBMISSION_NOT_FOUND');
-      const persisted = await grantDirectorateOverride(currentSubmission.id, user, 30);
-      await writeAuditEvent({
-        user,
-        action: 'OVERRIDE_GRANTED',
-        entity: 'daily_submissions',
-        entityId: persisted.id,
-        metadata: {
-          actor_name: user.full_name,
-          actor_role: user.role_title_ar,
-          description: `منح فتح استثنائي لمدة 30 دقيقة لإدارة (${persisted.district_name_ar})`,
-          target_district: persisted.district_name_ar,
-        },
-      });
-      onDataChanged();
-    } catch (error) {
-      console.error('Failed to grant directorate override.', error);
-      setOperationError({
-        title: 'تعذر منح الفتح المؤقت',
-        message: 'لم نتمكن من تفعيل الفتح الاستثنائي الآن. أعد المحاولة، وإذا استمرت المشكلة تواصل مع الدعم الفني.',
       });
     }
   };
@@ -226,63 +193,63 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
           setSelectedSub(sub);
           setIsReturning(false);
         }}
-        renderActions={(sub) => (
-          <>
-            <div className="relative group">
-              <button
-                onClick={() => setConfirmation({ type: 'override', districtId: sub.district_id })}
-                className="h-8 px-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-[8px] font-extrabold inline-flex items-center gap-1"
-              >
-                <Unlock className="w-3 h-3" /> فتح مؤقت
-              </button>
-              <div className="pointer-events-none absolute z-50 bottom-full right-1/2 translate-x-1/2 mb-2 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150">
-                <div className="rounded-xl bg-slate-900 text-white px-3 py-2.5 shadow-xl text-[9px] leading-5">
-                  <div className="font-extrabold mb-0.5">فتح استثنائي لمدة 30 دقيقة</div>
-                  <div className="text-slate-300">
-                    يسمح للإدارة الصحية بتعديل البيان بعد انتهاء وقت الإدخال بدون اعتباره بيانًا مُرجعًا.
-                  </div>
-                </div>
-                <div className="w-2.5 h-2.5 bg-slate-900 rotate-45 mx-auto -mt-1.5" />
-              </div>
-            </div>
+        renderActions={(sub) => {
+          const canReview =
+            sub.status === 'SUBMITTED_LOCKED' &&
+            sub.directorate_status === 'PENDING';
 
-            <div className="relative group">
-              <button
-                onClick={() => { setSelectedSub(sub); setIsReturning(true); }}
-                className="h-8 px-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[8px] font-extrabold inline-flex items-center gap-1"
-              >
-                <RotateCcw className="w-3 h-3" /> إرجاع
-              </button>
-              <div className="pointer-events-none absolute z-50 bottom-full right-1/2 translate-x-1/2 mb-2 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150">
-                <div className="rounded-xl bg-slate-900 text-white px-3 py-2.5 shadow-xl text-[9px] leading-5">
-                  <div className="font-extrabold mb-0.5">إرجاع البيان للتعديل</div>
-                  <div className="text-slate-300">
-                    يستخدم عند وجود خطأ أو نقص. يجب كتابة سبب الإرجاع، ويُعاد فتح البيان للإدارة الصحية لتصحيحه وإرساله مرة أخرى.
-                  </div>
-                </div>
-                <div className="w-2.5 h-2.5 bg-slate-900 rotate-45 mx-auto -mt-1.5" />
-              </div>
-            </div>
+          if (!canReview) {
+            return (
+              <span className="h-8 px-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 text-[8px] font-extrabold inline-flex items-center">
+                {sub.status === 'RETURNED' || sub.directorate_status === 'RETURNED'
+                  ? 'بانتظار إعادة الإرسال'
+                  : sub.directorate_status === 'APPROVED'
+                    ? 'تمت المراجعة'
+                    : 'غير جاهز للمراجعة'}
+              </span>
+            );
+          }
 
-            <div className="relative group">
-              <button
-                onClick={() => setConfirmation({ type: 'approve', districtId: sub.district_id })}
-                className="h-8 px-2.5 rounded-lg bg-[#147d64] border border-[#147d64] text-white text-[8px] font-extrabold inline-flex items-center gap-1"
-              >
-                <CheckCircle2 className="w-3 h-3" /> اعتماد
-              </button>
-              <div className="pointer-events-none absolute z-50 bottom-full right-1/2 translate-x-1/2 mb-2 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150">
-                <div className="rounded-xl bg-slate-900 text-white px-3 py-2.5 shadow-xl text-[9px] leading-5">
-                  <div className="font-extrabold mb-0.5">اعتماد بيان الإدارة الصحية</div>
-                  <div className="text-slate-300">
-                    يؤكد انتهاء مراجعة المديرية ويعتمد البيان للانتقال إلى المستوى التالي من المراجعة.
+          return (
+            <>
+              <div className="relative group">
+                <button
+                  onClick={() => { setSelectedSub(sub); setIsReturning(true); }}
+                  className="h-8 px-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[8px] font-extrabold inline-flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3 h-3" /> إرجاع
+                </button>
+                <div className="pointer-events-none absolute z-50 bottom-full right-1/2 translate-x-1/2 mb-2 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150">
+                  <div className="rounded-xl bg-slate-900 text-white px-3 py-2.5 shadow-xl text-[9px] leading-5">
+                    <div className="font-extrabold mb-0.5">إرجاع البيان للتعديل</div>
+                    <div className="text-slate-300">
+                      يعاد البيان للإدارة الصحية صاحبة البيانات لتصحيحه. بعد إعادة الإرسال يعود تلقائيًا لقائمة المراجعة.
+                    </div>
                   </div>
+                  <div className="w-2.5 h-2.5 bg-slate-900 rotate-45 mx-auto -mt-1.5" />
                 </div>
-                <div className="w-2.5 h-2.5 bg-slate-900 rotate-45 mx-auto -mt-1.5" />
               </div>
-            </div>
-          </>
-        )}
+
+              <div className="relative group">
+                <button
+                  onClick={() => setConfirmation({ type: 'approve', districtId: sub.district_id })}
+                  className="h-8 px-2.5 rounded-lg bg-[#147d64] border border-[#147d64] text-white text-[8px] font-extrabold inline-flex items-center gap-1"
+                >
+                  <CheckCircle2 className="w-3 h-3" /> اعتماد
+                </button>
+                <div className="pointer-events-none absolute z-50 bottom-full right-1/2 translate-x-1/2 mb-2 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150">
+                  <div className="rounded-xl bg-slate-900 text-white px-3 py-2.5 shadow-xl text-[9px] leading-5">
+                    <div className="font-extrabold mb-0.5">اعتماد البيان</div>
+                    <div className="text-slate-300">
+                      يعتمد البيان كما أرسلته الإدارة الصحية دون تعديل قيمه، ثم ينتقل للمستوى التالي.
+                    </div>
+                  </div>
+                  <div className="w-2.5 h-2.5 bg-slate-900 rotate-45 mx-auto -mt-1.5" />
+                </div>
+              </div>
+            </>
+          );
+        }
       />
 
       {selectedSub && (
@@ -414,23 +381,15 @@ export const DirectorateReviewView: React.FC<DirectorateReviewViewProps> = ({
       )}
       <ConfirmationDialog
         open={Boolean(confirmation)}
-        title={confirmation?.type === 'override' ? 'منح فتح استثنائي' : 'اعتماد البيان'}
-        message={
-          confirmation?.type === 'override'
-            ? 'سيتم فتح البيان للإدارة الصحية لمدة 30 دقيقة مع تسجيل الإجراء في سجل التدقيق. هل تريد المتابعة؟'
-            : 'سيتم اعتماد بيان الإدارة الصحية وإرساله للمستوى التالي. هل تريد المتابعة؟'
-        }
-        confirmLabel={confirmation?.type === 'override' ? 'منح الفتح' : 'اعتماد البيان'}
-        tone={confirmation?.type === 'override' ? 'warning' : 'success'}
+        title="اعتماد البيان"
+        message="سيتم اعتماد بيان الإدارة الصحية كما أرسلته الجهة صاحبة البيانات وإرساله للمستوى التالي. هل تريد المتابعة؟"
+        confirmLabel="اعتماد البيان"
+        tone="success"
         onConfirm={async () => {
           const current = confirmation;
           setConfirmation(null);
           if (!current) return;
-          if (current.type === 'override') {
-            await handleGrantOverride(current.districtId);
-          } else {
-            await handleApproveSubmission(current.districtId);
-          }
+          await handleApproveSubmission(current.districtId);
         }}
         onCancel={() => setConfirmation(null)}
       />

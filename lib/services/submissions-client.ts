@@ -327,8 +327,6 @@ export async function returnDirectorateSubmission(
 ): Promise<DailySubmission> {
   const supabase = createBrowserClient()
   const now = new Date()
-  const expiresAt = new Date(now.getTime() + 60 * 60_000).toISOString()
-
   const { data, error } = await supabase
     .from('daily_submissions')
     .update({
@@ -337,8 +335,8 @@ export async function returnDirectorateSubmission(
       returned_reason: reason,
       returned_by: `${user.full_name} (${user.role_title_ar})`,
       returned_at: now.toISOString(),
-      override_active: true,
-      override_expires_at: expiresAt,
+      override_active: false,
+      override_expires_at: null,
     })
     .eq('id', submissionId)
     .select(SUBMISSION_DETAIL_COLUMNS)
