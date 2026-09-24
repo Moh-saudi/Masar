@@ -40,27 +40,33 @@ export async function POST(req: NextRequest) {
     delete safeMetadata.token;
     delete safeMetadata.secret;
 
-    const admin = createAdminClient();
+    try {
+      const admin = createAdminClient();
 
-    const insertPayload = {
-      user_id: userId || null,
-      action,
-      entity: 'auth',
-      entity_id: userId || identifier || 'unknown',
-      metadata: safeMetadata,
-    };
+      const insertPayload = {
+        user_id: userId || null,
+        action,
+        entity: 'auth',
+        entity_id: userId || identifier || 'unknown',
+        metadata: safeMetadata,
+      };
 
-    const { error } = await admin.from('audit_logs').insert(insertPayload);
+      const { error } = await admin.from('audit_logs').insert(insertPayload);
 
-    if (error) {
-      console.warn('Failed to insert auth audit log:', error.message);
-      return NextResponse.json({ error: 'DB_ERROR' }, { status: 500 });
+      if (error) {
+        console.warn('Failed to insert auth audit log:', error.message);
+        return NextResponse.json({ success: false, error: 'DB_ERROR' }, { status: 200 });
+      }
+    } catch (adminErr: unknown) {
+      const msg = adminErr instanceof Error ? adminErr.message : 'Admin client unconfigured';
+      console.warn('Audit logging skipped (admin client unavailable):', msg);
+      return NextResponse.json({ success: false, reason: 'AUDIT_UNAVAILABLE' }, { status: 200 });
     }
 
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown audit error';
     console.warn('Auth audit route exception:', message);
-    return NextResponse.json({ error: 'INTERNAL_ERROR' }, { status: 500 });
+    return NextResponse.json({ success: false, error: message }, { status: 200 });
   }
 }
