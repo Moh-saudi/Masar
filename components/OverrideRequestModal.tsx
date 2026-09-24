@@ -63,34 +63,41 @@ export const OverrideRequestModal: React.FC<OverrideRequestModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-sovereign-card border border-amber-500/50 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl animate-in zoom-in-95">
+    <div 
+      className="fixed inset-0 z-50 bg-slate-950/45 backdrop-blur-[2px] flex items-center justify-center p-3 sm:p-5"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl animate-in zoom-in-95"
+        onClick={(e) => e.stopPropagation()}
+      >
         
-        <div className="p-5 border-b border-slate-700 flex items-center justify-between bg-amber-500/10">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-amber-50/50 via-white to-white">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center shrink-0">
               <ShieldAlert className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-black text-white">طلب فتح استثنائي (قيد الجهة الأم)</h3>
-              <p className="text-xs text-amber-300/80 mt-0.5">Mother Authority Override Request</p>
+              <h3 className="text-base font-extrabold text-[#172033]">طلب فتح استثنائي (قيد الجهة الأم)</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Mother Authority Override Request</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+            title="إغلاق"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 leading-relaxed">
+          <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-900 leading-relaxed font-medium">
             وفقاً للائحة الحوكمة، تنتهي صلاحية الإدارة الصحية في تمام الساعة <strong>03:00 عصراً</strong>. يتطلب أي تعديل بعد هذا التوقيت موافقة مديرية الشئون الصحية التابعة لمنح نافذة فتح مؤقت (30 دقيقة) مسجلة في سجل التدقيق الرقابي.
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-white">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-slate-700">
               سبب طلب التعديل أو التأخير في رفع البيان:
             </label>
             <textarea
@@ -99,22 +106,22 @@ export const OverrideRequestModal: React.FC<OverrideRequestModalProps> = ({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="مثال: تأخر وصول كشوف عيادات المشورة الأسرية بإحدى الوحدات الصحية الريفية نظراً لعطل في خط المواصلات، وتم استلام الكشوف الورقية الآن للتدقيق..."
-              className="w-full text-xs p-3.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none"
+              className="w-full text-xs p-3.5 rounded-xl bg-white border border-slate-300 text-slate-800 placeholder:text-slate-400 focus:border-[#087f78] focus:ring-2 focus:ring-[#087f78]/20 outline-none transition"
             />
           </div>
 
-          <div className="flex items-center justify-between pt-4 border-t border-slate-700/80">
+          <div className="flex items-center justify-between pt-4 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs text-slate-400 hover:text-white"
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
             >
               إلغاء
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !reason.trim()}
-              className="px-6 py-2.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-slate-950 flex items-center gap-2 shadow-lg shadow-amber-500/20 transition"
+              className="px-6 py-2.5 rounded-xl text-xs font-bold bg-[#087f78] hover:bg-[#066560] disabled:opacity-40 text-white flex items-center gap-2 shadow-sm transition"
             >
               <Send className="w-4 h-4" />
               <span>إرسال الطلب للمديرية</span>

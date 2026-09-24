@@ -10,10 +10,12 @@ import { DirectoratePortal } from '@/components/DirectoratePortal';
 import { MinistryPortal } from '@/components/MinistryPortal';
 import { ReportsCenterView } from '@/components/ReportsCenterView';
 import { AdminUsersPortal } from '@/components/AdminUsersPortal';
+import { DailySubmissionsRegisterView } from '@/components/DailySubmissionsRegisterView';
 import { AuditLogModal } from '@/components/AuditLogModal';
 import { SystemErrorNotice } from '@/components/SystemErrorNotice';
-import { MasarService } from '@/lib/masar-service';
-import { fetchDailySubmissions } from '@/lib/services/submissions-client';
+import { OfficialFooter } from '@/components/OfficialFooter';
+import { MasarService, getTodayDateString } from '@/lib/masar-service';
+import { fetchDailySubmissions, fetchSubmissionPage } from '@/lib/services/submissions-client';
 import { fetchAuditTrail } from '@/lib/services/audit-client';
 import { DailySubmission, TimeLockState, AuditLog } from '@/lib/types';
 import { 
@@ -22,6 +24,7 @@ import {
   LayoutDashboard, 
   FileSpreadsheet, 
   ShieldCheck, 
+  ShieldAlert,
 } from 'lucide-react';
 
 export default function MasarPlatformPage() {
@@ -29,7 +32,7 @@ export default function MasarPlatformPage() {
 
   const [submissions, setSubmissions] = useState<DailySubmission[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-  const [adminActiveTab, setAdminActiveTab] = useState<'admin' | 'ministry' | 'directorate' | 'district' | 'reports'>('admin');
+  const [adminActiveTab, setAdminActiveTab] = useState<'admin' | 'daily_register' | 'ministry' | 'directorate' | 'reports'>('admin');
   const [showAuditModal, setShowAuditModal] = useState<boolean>(false);
 
   const [timeLock, setTimeLock] = useState<TimeLockState>({
@@ -50,7 +53,29 @@ export default function MasarPlatformPage() {
 
     try {
       const subs = await fetchDailySubmissions();
-      setSubmissions(subs);
+      let allSubs = [...subs];
+
+      // إذا كان المستخدم إدارة صحية، نجلب أيضاً السجلات السابقة لإظهار أي بيانات مرجعة للتعديل (مثل الأمس)
+      if (user.role === 'district_user' && user.district_id) {
+        try {
+          const past = await fetchSubmissionPage({
+            districtId: user.district_id,
+            pageSize: 15,
+          });
+          past.rows.forEach(p => {
+            if (!allSubs.some(s => s.id === p.id)) {
+              allSubs.push(p);
+            }
+          });
+        } catch (e) {
+          console.warn('Failed to load past district submissions', e);
+        }
+      }
+
+      setSubmissions(allSubs);
+      if (allSubs.length > 0) {
+        MasarService.syncSubmissions(allSubs);
+      }
     } catch (error) {
       console.error('Failed to load today submissions.', error);
       setSubmissions([]);
@@ -84,8 +109,9 @@ export default function MasarPlatformPage() {
   useEffect(() => {
     const updateLock = () => {
       let activeSub: DailySubmission | undefined;
+      const today = getTodayDateString();
       if (user?.district_id) {
-        activeSub = submissions.find(s => s.district_id === user.district_id);
+        activeSub = submissions.find(s => s.district_id === user.district_id && s.submission_date === today) || MasarService.getSubmissionByDistrict(user.district_id, user);
       } else {
         activeSub = submissions[0];
       }
@@ -99,16 +125,57 @@ export default function MasarPlatformPage() {
   }, [submissions, user]);
 
   const handleSubmissionUpdated = (updatedSub: DailySubmission) => {
-    setSubmissions(prev => prev.map(s => s.id === updatedSub.id ? updatedSub : s));
+    setSubmissions(prev => {
+      const index = prev.findIndex(
+        s => s.id === updatedSub.id || (s.district_id === updatedSub.district_id && s.submission_date === updatedSub.submission_date)
+      );
+      if (index >= 0) {
+        const next = [...prev];
+        next[index] = updatedSub;
+        return next;
+      }
+      return [updatedSub, ...prev];
+    });
+    MasarService.syncSubmissions([updatedSub]);
   };
+
+  // دفاع إضافي بجانب RLS: أي حساب جغرافي ناقص النطاق يفشل مغلقًا ولا يرى سجلات.
+  const scopedSubmissions = React.useMemo(() => {
+    if (!user) return [];
+    if (user.role === 'district_user') {
+      if (!user.district_id) return [];
+      return submissions.filter(s => s.district_id === user.district_id);
+    }
+
+    if (user.role === 'directorate_user') {
+      if (!user.governorate_id) return [];
+      return submissions.filter(s => s.governorate_id === user.governorate_id);
+    }
+
+    return submissions;
+  }, [submissions, user?.role, user?.district_id, user?.governorate_id]);
+
+  const userDistrictSubmission = React.useMemo(() => {
+    if (user?.role !== 'district_user' || !user.district_id) return undefined;
+    const today = getTodayDateString();
+    const foundToday = scopedSubmissions.find(
+      s => s.district_id === user.district_id && s.submission_date === today
+    );
+    if (foundToday) return foundToday;
+
+    // إذا لم يكن هناك استمارة لليوم مسجلة مسبقاً في قاعدة البيانات، نجهز استمارة اليوم الافتراضية كمسودة نظيفة
+    return MasarService.getSubmissionByDistrict(user.district_id, user);
+  }, [user, scopedSubmissions]);
 
   // 1. حالة التحميل الأولي
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white font-arabic">
-        <div className="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <h2 className="text-base font-bold tracking-wide">جاري الاتصال بمنظومة «مَسَار»...</h2>
-        <p className="text-xs text-slate-400 mt-1">التحقق من الشهادات الرقمية والحوكمة السيادية</p>
+      <div className="min-h-screen bg-[#f4f7fa] flex flex-col items-center justify-center p-4 font-arabic">
+        <div className="w-full max-w-sm rounded-3xl bg-white border border-[#dfe6ee] p-8 shadow-[0_20px_60px_rgba(23,32,51,0.06)] flex flex-col items-center text-center space-y-4">
+          <div className="w-8 h-8 rounded-full border-3 border-[#087f78]/20 border-t-[#087f78] animate-spin" />
+          <h2 className="text-sm font-extrabold text-[#172033]">جاري الاتصال بمنظومة «مَسَار»...</h2>
+          <p className="text-[11px] text-slate-500">التحقق من بيانات الجلسة والصلاحيات المعتمدة</p>
+        </div>
       </div>
     );
   }
@@ -130,26 +197,6 @@ export default function MasarPlatformPage() {
     return <LoginView />;
   }
 
-  // دفاع إضافي بجانب RLS: أي حساب جغرافي ناقص النطاق يفشل مغلقًا ولا يرى سجلات.
-  const scopedSubmissions = React.useMemo(() => {
-    if (user.role === 'district_user') {
-      if (!user.district_id) return [];
-      return submissions.filter(s => s.district_id === user.district_id);
-    }
-
-    if (user.role === 'directorate_user') {
-      if (!user.governorate_id) return [];
-      return submissions.filter(s => s.governorate_id === user.governorate_id);
-    }
-
-    return submissions;
-  }, [submissions, user.role, user.district_id, user.governorate_id]);
-
-  const userDistrictSubmission =
-    user.role === 'district_user' && user.district_id
-      ? scopedSubmissions.find(s => s.district_id === user.district_id)
-      : undefined;
-
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col font-arabic">
       
@@ -159,7 +206,7 @@ export default function MasarPlatformPage() {
         onOpenAuditLogs={openAuditLogs}
       />
 
-      {/* 2. شريط التوقيت والحوكمة السيادي الصارم */}
+      {/* 2. شريط التوقيت والحوكمة الصارم */}
       <TimeLockBar
         timeLock={timeLock}
         userRole={user.role}
@@ -183,9 +230,9 @@ export default function MasarPlatformPage() {
             <div className="flex flex-wrap items-center gap-1 p-1 bg-[#f2f5f8] border border-[#e1e7ed] rounded-xl text-[10px] font-extrabold">
               {[
                 { id: 'admin', label: 'إدارة النظام', icon: <ShieldCheck className="w-3.5 h-3.5" /> },
+                { id: 'daily_register', label: 'سجلات اليوم (الإدارات)', icon: <Building className="w-3.5 h-3.5" /> },
                 { id: 'ministry', label: 'ديوان الوزارة', icon: <LayoutDashboard className="w-3.5 h-3.5" /> },
                 { id: 'directorate', label: 'المديرية', icon: <Building2 className="w-3.5 h-3.5" /> },
-                { id: 'district', label: 'الإدارة الصحية', icon: <Building className="w-3.5 h-3.5" /> },
                 { id: 'reports', label: 'التقارير', icon: <FileSpreadsheet className="w-3.5 h-3.5" /> },
               ].map(item => (
                 <button
@@ -213,10 +260,24 @@ export default function MasarPlatformPage() {
         {user.role === 'district_user' && userDistrictSubmission && (
           <DistrictPortal
             submission={userDistrictSubmission}
+            submissions={scopedSubmissions}
             user={user}
             timeLock={timeLock}
             onSubmissionUpdated={handleSubmissionUpdated}
           />
+        )}
+
+        {user.role === 'district_user' && !user.district_id && (
+          <div className="gov-surface p-8 max-w-lg mx-auto text-center my-12">
+            <div className="w-12 h-12 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto mb-3 text-amber-600">
+              <ShieldAlert className="w-6 h-6" />
+            </div>
+            <h2 className="text-base font-extrabold text-[#172033]">الحساب غير مرتبط بإدارة صحية محددة</h2>
+            <p className="text-xs text-slate-500 mt-2 leading-6">
+              تم تعيين دورك كمسؤول إدخال بيانات ولكن لم يتم تحديد نطاق الإدارة الصحية في ملف الحساب.
+              يرجى مراجعة مسؤول النظام لربط الحساب بالإدارة التابع لها.
+            </p>
+          </div>
         )}
 
         {/* ب. مستوى مديرية الشئون الصحية بالمحافظة (Directorate Reviewer) */}
@@ -245,9 +306,23 @@ export default function MasarPlatformPage() {
             {adminActiveTab === 'admin' && (
               <AdminUsersPortal
                 auditLogs={auditLogs}
-                submissions={scopedSubmissions}
+                submissions={submissions}
                 currentUser={user}
+                timeLock={timeLock}
+                initialTab="users"
                 onLoadAuditLogs={loadAuditLogs}
+                onRefreshSubmissions={reloadData}
+              />
+            )}
+            {adminActiveTab === 'daily_register' && (
+              <AdminUsersPortal
+                auditLogs={auditLogs}
+                submissions={submissions}
+                currentUser={user}
+                timeLock={timeLock}
+                initialTab="daily_register"
+                onLoadAuditLogs={loadAuditLogs}
+                onRefreshSubmissions={reloadData}
               />
             )}
             {adminActiveTab === 'ministry' && (
@@ -264,14 +339,6 @@ export default function MasarPlatformPage() {
                 user={user}
                 timeLock={timeLock}
                 onDataChanged={reloadData}
-              />
-            )}
-            {adminActiveTab === 'district' && user.role === 'district_user' && userDistrictSubmission && (
-              <DistrictPortal
-                submission={userDistrictSubmission}
-                user={user}
-                timeLock={timeLock}
-                onSubmissionUpdated={handleSubmissionUpdated}
               />
             )}
             {adminActiveTab === 'reports' && (
@@ -292,6 +359,9 @@ export default function MasarPlatformPage() {
           onClose={() => setShowAuditModal(false)}
         />
       )}
+
+      {/* الفوتر الرسمي المعتمد لجميع الشاشات */}
+      <OfficialFooter />
 
     </main>
   );

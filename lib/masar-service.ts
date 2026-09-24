@@ -91,10 +91,17 @@ export class MasarService {
   public static initialize(): void {
     if (typeof window === 'undefined') return;
 
+    const today = getTodayDateString();
     const savedSubs = localStorage.getItem(STORAGE_KEY_SUBMISSIONS);
     if (savedSubs) {
       try {
-        this.submissions = JSON.parse(savedSubs);
+        const parsed: DailySubmission[] = JSON.parse(savedSubs);
+        if (parsed.length > 0 && parsed[0].submission_date === today) {
+          this.submissions = parsed;
+        } else {
+          this.submissions = getInitialSubmissions();
+          this.saveSubmissions();
+        }
       } catch {
         this.submissions = getInitialSubmissions();
       }
@@ -166,7 +173,11 @@ export class MasarService {
     let hasActiveOverride = false;
     let overrideMinutesRemaining = 0;
 
-    if (submission && submission.override_active && submission.override_expires_at) {
+    // الاستثناء يفتح للتعديل في نفس اليوم الإحصائي فقط
+    const today = getTodayDateString();
+    const isSameDay = submission ? submission.submission_date === today : true;
+
+    if (submission && submission.override_active && submission.override_expires_at && isSameDay) {
       const expiresAt = new Date(submission.override_expires_at).getTime();
       const currentEpoch = new Date().getTime();
       if (expiresAt > currentEpoch) {
@@ -175,13 +186,18 @@ export class MasarService {
       }
     }
 
-    const isDistrictLocked = decimalTime >= 15.0 && !hasActiveOverride;
+    // نافذة إدخال الإدارة الصحية تفتح حصراً من 09:00 صباحاً وحتى 15:00 عصراً
+    const isDistrictBeforeOpen = decimalTime < 9.0;
+    const isDistrictAfterClose = decimalTime >= 15.0;
+    const isDistrictLocked = (isDistrictBeforeOpen || isDistrictAfterClose) && !hasActiveOverride;
     const isDirectorateLocked = decimalTime >= 18.0;
     const isMinistryLocked = decimalTime >= 22.0;
 
     return {
       current_time_str: timeStr,
       is_district_locked: isDistrictLocked,
+      is_district_before_open: isDistrictBeforeOpen,
+      district_open_time: '09:00',
       is_directorate_locked: isDirectorateLocked,
       is_ministry_locked: isMinistryLocked,
       district_deadline: '15:00',
@@ -199,12 +215,63 @@ export class MasarService {
     return this.submissions;
   }
 
-  public static getSubmissionByDistrict(districtId: string): DailySubmission {
+  public static syncSubmissions(list: DailySubmission[]): void {
+    if (!list || list.length === 0) return;
+    const today = getTodayDateString();
+    list.forEach(incoming => {
+      const idx = this.submissions.findIndex(
+        s => s.district_id === incoming.district_id && (s.submission_date === incoming.submission_date || incoming.submission_date === today)
+      );
+      if (idx >= 0) {
+        this.submissions[idx] = incoming;
+      } else {
+        this.submissions.unshift(incoming);
+      }
+    });
+    this.saveSubmissions();
+  }
+
+  public static getSubmissionByDistrict(districtId: string, user?: UserProfile): DailySubmission {
+    const today = getTodayDateString();
     const list = this.getSubmissions();
-    let sub = list.find(s => s.district_id === districtId);
+    let sub = list.find(s => s.district_id === districtId && s.submission_date === today);
     if (!sub) {
-      sub = getInitialSubmissions().find(s => s.district_id === districtId) || getInitialSubmissions()[0];
+      sub = getInitialSubmissions().find(s => s.district_id === districtId);
+      if (!sub) {
+        const sections = createEmptySections();
+        const history: Record<number, SectionHistoryEntry[]> = {};
+        SECTIONS_DEFINITIONS.forEach(d => {
+          history[d.code] = [];
+        });
+
+        sub = {
+          id: `sub-${districtId}-${today}`,
+          submission_date: today,
+          district_id: districtId,
+          district_name_ar: user?.district_name_ar || 'الإدارة الصحية',
+          governorate_id: user?.governorate_id || 'gov-cairo',
+          governorate_name_ar: user?.governorate_name_ar || 'القاهرة',
+          status: 'DRAFT',
+          directorate_status: 'PENDING',
+          ministry_status: 'PENDING',
+          override_active: false,
+          sections,
+          history_logs: history,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+      }
+      this.submissions.unshift(sub);
+      this.saveSubmissions();
     }
+
+    if (user?.district_name_ar && sub.district_name_ar !== user.district_name_ar) {
+      sub.district_name_ar = user.district_name_ar;
+    }
+    if (user?.governorate_name_ar && sub.governorate_name_ar !== user.governorate_name_ar) {
+      sub.governorate_name_ar = user.governorate_name_ar;
+    }
+
     return sub;
   }
 
@@ -229,13 +296,18 @@ export class MasarService {
     return delinquents;
   }
 
+  public static getSubmissionById(id: string): DailySubmission | undefined {
+    return this.getSubmissions().find(s => s.id === id);
+  }
+
   public static updateSectionData(
     districtId: string,
     sectionCode: number,
     data: { field_1_value: number; field_2_value: number; field_3_value: number; notes?: string },
-    user: UserProfile
+    user: UserProfile,
+    submissionId?: string
   ): DailySubmission {
-    const sub = this.getSubmissionByDistrict(districtId);
+    const sub = (submissionId ? this.getSubmissionById(submissionId) : null) || this.getSubmissionByDistrict(districtId);
     const lockState = this.getTimeLockState(sub);
 
     if (lockState.is_district_locked && sub.status === 'SUBMITTED_LOCKED') {
@@ -264,9 +336,10 @@ export class MasarService {
   public static updateAllSectionsBulk(
     districtId: string,
     updatedSections: Record<number, { field_1_value: number; field_2_value: number; field_3_value: number; notes?: string }>,
-    user: UserProfile
+    user: UserProfile,
+    submissionId?: string
   ): DailySubmission {
-    const sub = this.getSubmissionByDistrict(districtId);
+    const sub = (submissionId ? this.getSubmissionById(submissionId) : null) || this.getSubmissionByDistrict(districtId);
     const nowStr = 'اليوم، ' + formatTimeEn();
 
     Object.entries(updatedSections).forEach(([codeStr, vals]) => {
@@ -289,8 +362,8 @@ export class MasarService {
     return sub;
   }
 
-  public static submitDistrictDailyReport(districtId: string, user: UserProfile): DailySubmission {
-    const sub = this.getSubmissionByDistrict(districtId);
+  public static submitDistrictDailyReport(districtId: string, user: UserProfile, submissionId?: string): DailySubmission {
+    const sub = (submissionId ? this.getSubmissionById(submissionId) : null) || this.getSubmissionByDistrict(districtId);
     sub.status = 'SUBMITTED_LOCKED';
     sub.directorate_status = 'PENDING';
     sub.override_active = false;
@@ -310,8 +383,8 @@ export class MasarService {
     return sub;
   }
 
-  public static requestOverride(districtId: string, reason: string, user: UserProfile): DailySubmission {
-    const sub = this.getSubmissionByDistrict(districtId);
+  public static requestOverride(districtId: string, reason: string, user: UserProfile, submissionId?: string): DailySubmission {
+    const sub = (submissionId ? this.getSubmissionById(submissionId) : null) || this.getSubmissionByDistrict(districtId);
     sub.override_reason = reason;
 
     this.addAuditLog({
@@ -328,8 +401,8 @@ export class MasarService {
     return sub;
   }
 
-  public static grantOverride(districtId: string, user: UserProfile): DailySubmission {
-    const sub = this.getSubmissionByDistrict(districtId);
+  public static grantOverride(districtId: string, user: UserProfile, submissionId?: string): DailySubmission {
+    const sub = (submissionId ? this.getSubmissionById(submissionId) : null) || this.getSubmissionByDistrict(districtId);
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
     const timeNowStr = 'اليوم، ' + formatTimeEn();
     
@@ -353,8 +426,8 @@ export class MasarService {
     return sub;
   }
 
-  public static returnSubmission(districtId: string, returnReason: string, user: UserProfile): DailySubmission {
-    const sub = this.getSubmissionByDistrict(districtId);
+  public static returnSubmission(districtId: string, returnReason: string, user: UserProfile, submissionId?: string): DailySubmission {
+    const sub = (submissionId ? this.getSubmissionById(submissionId) : null) || this.getSubmissionByDistrict(districtId);
     const timeNowStr = 'اليوم، ' + formatTimeEn();
 
     sub.status = 'RETURNED';
@@ -379,8 +452,8 @@ export class MasarService {
     return sub;
   }
 
-  public static approveDirectorateSubmission(districtId: string, user: UserProfile): DailySubmission {
-    const sub = this.getSubmissionByDistrict(districtId);
+  public static approveDirectorateSubmission(districtId: string, user: UserProfile, submissionId?: string): DailySubmission {
+    const sub = (submissionId ? this.getSubmissionById(submissionId) : null) || this.getSubmissionByDistrict(districtId);
     sub.directorate_status = 'APPROVED';
     sub.status = 'APPROVED';
 
@@ -409,7 +482,7 @@ export class MasarService {
       actor_name: user.full_name,
       actor_role: user.role_title_ar,
       action_type: 'MINISTRY_NATIONAL_APPROVAL',
-      description: 'الاعتماد الوزاري القومي الشامل للتقرير اليومي لكافة محافظات الجمهورية',
+      description: 'الاعتماد النهائي القومي الشامل للتقرير اليومي لكافة محافظات الجمهورية',
     });
 
     this.saveSubmissions();

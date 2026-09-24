@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { DailySubmission, UserProfile } from '@/lib/types';
 import { SAMPLE_GOVERNORATES } from '@/lib/constants';
 import { exportToStyledExcel } from '@/lib/excel-export';
@@ -18,7 +18,9 @@ import {
   Timer,
   TrendingUp,
   Award,
-  Clock
+  Clock,
+  BarChart3,
+  CheckCheck
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -60,6 +62,22 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
     user.governorate_id ? (SAMPLE_GOVERNORATES.find(g => g.id === user.governorate_id)?.code || '01') : '01'
   );
 
+  // جلب قائمة المحافظات والهيكل الإداري متزامناً مع ما تم حفظه
+  const currentGovernoratesList = useMemo(() => {
+    let govs = SAMPLE_GOVERNORATES;
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('masar_hierarchy_governorates_v2');
+        if (saved) {
+          govs = JSON.parse(saved);
+        }
+      } catch (e) {
+        console.error('Failed to load saved hierarchy governorates', e);
+      }
+    }
+    return govs;
+  }, []);
+
   // عداد تنازلي لموعد إغلاق مراجعة وإرجاع المديرية (الساعة 06:00 مساءً)
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; isPassed: boolean }>({
     hours: 0,
@@ -91,8 +109,51 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
   }, []);
 
   // تصفية إدارات المحافظة المحددة
-  const activeGov = SAMPLE_GOVERNORATES.find(g => g.code === selectedGovCode) || SAMPLE_GOVERNORATES[0];
+  const activeGov = currentGovernoratesList.find(g => g.code === selectedGovCode) || currentGovernoratesList[0];
   const govSubmissions = submissions.filter(s => s.governorate_name_ar === activeGov.name_ar);
+
+  // حساب جراف الإدارات الصحية التابعة للمديرية وموقف استيفاء البيانات
+  const districtRegistrationChartData = useMemo(() => {
+    const districts = activeGov.districts || [];
+    return districts.map((dist, idx) => {
+      const sub = submissions.find(s => s.district_id === dist.id || s.district_name_ar === dist.name_ar);
+      let completedSections = 0;
+      let attendees = 0;
+      let larc = 0;
+
+      if (sub?.sections) {
+        Object.values(sub.sections).forEach(sec => {
+          if (sec.status === 'completed' || ((sec.field_1_value || 0) + (sec.field_2_value || 0) + (sec.field_3_value || 0) > 0)) {
+            completedSections++;
+          }
+          if (sec.section_code !== 12) {
+            attendees += sec.field_1_value || 0;
+            larc += sec.field_3_value || 0;
+          } else {
+            larc += (sec.field_1_value || 0) + (sec.field_2_value || 0) + (sec.field_3_value || 0);
+          }
+        });
+      }
+
+      const totalSections = 13;
+      const percentage = Math.round((completedSections / totalSections) * 100);
+      const shortName = dist.name_ar.replace('إدارة ', '').replace(' الطبية', '');
+      const status = sub?.status || 'DRAFT';
+
+      return {
+        id: dist.id,
+        fullName: dist.name_ar,
+        shortName,
+        completedSections,
+        totalSections,
+        percentage,
+        attendees,
+        larc,
+        status,
+        isComplete: completedSections === 13,
+      };
+    });
+  }, [activeGov, submissions]);
 
   // حساب مؤشرات المحافظة الإجمالية
   let govTotalAttendees = 0;
@@ -207,7 +268,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
       { header: 'اسم الإدارة الصحية', key: 'districtName' },
       { header: 'المترددات الكلية', key: 'attendees' },
       { header: 'المحولات لتنظيم الأسرة', key: 'referrals' },
-      { header: 'الوسائل المركبة (LARC)', key: 'larc' },
+      { header: 'الوسائل المركبة (طويلة المفعول)', key: 'larc' },
       { header: 'معدل تحقيق المستهدف %', key: 'targetAchievedPct' },
       { header: 'معدل التحويل %', key: 'convRate' },
       { header: 'حالة البيان', key: 'status' },
@@ -296,7 +357,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
             className="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 transition shadow-xs"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>تصدير Excel</span>
+            <span>تصدير إكسيل</span>
           </button>
         </div>
       </div>
@@ -310,7 +371,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
             <Users className="w-4 h-4 text-[#087f78]" />
           </div>
           <div className="text-2xl font-black font-mono text-slate-900">
-            {govTotalAttendees.toLocaleString('en-US')}
+            {govTotalAttendees.toLocaleString('ar-EG')}
           </div>
           <span className="text-[11px] text-slate-400 mt-1 block">في كافة الإدارات الصحية</span>
         </div>
@@ -321,7 +382,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
             <Share2 className="w-4 h-4 text-indigo-600" />
           </div>
           <div className="text-2xl font-black font-mono text-indigo-700">
-            {govTotalReferrals.toLocaleString('en-US')}
+            {govTotalReferrals.toLocaleString('ar-EG')}
           </div>
           <span className="text-[11px] text-indigo-600 font-bold font-mono mt-1 block">
             معدل تحويل: {govOverallConvRate}%
@@ -330,11 +391,11 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
 
         <div className="gov-surface p-4 shadow-xs">
           <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-semibold">إجمالي وسائل LARC</span>
+            <span className="text-xs font-semibold">إجمالي الوسائل طويلة المفعول</span>
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="text-2xl font-black font-mono text-emerald-700">
-            {govTotalLarc.toLocaleString('en-US')}
+            {govTotalLarc.toLocaleString('ar-EG')}
           </div>
           <span className="text-[11px] text-slate-400 mt-1 block">حالة حماية طويلة المدى</span>
         </div>
@@ -367,6 +428,116 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
 
       </div>
 
+      {/* 2.5 جراف إدارات المديرية: موقف تسجيل كل إدارة صحية واستيفاء أقسامها */}
+      <div className="gov-surface p-5 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-[#087f78]" />
+              <h3 className="text-base font-bold text-slate-900">
+                موقف تسجيل واستيفاء البيانات لإدارات مديرية {activeGov.name_ar} ({activeGov.districts?.length || 0} إدارة)
+              </h3>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              رصد استيفاء الأقسام الإحصائية الـ 13 لكل إدارة صحية تابعة للمديرية لليوم
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs">
+            <span className="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+              إدارات مكتملة: {districtRegistrationChartData.filter(d => d.isComplete).length} من {districtRegistrationChartData.length}
+            </span>
+            <span className="px-3 py-1 rounded-lg bg-indigo-50 text-indigo-800 font-bold border border-indigo-200">
+              متوسط الاستيفاء: {
+                districtRegistrationChartData.length > 0 
+                  ? Math.round(districtRegistrationChartData.reduce((acc, d) => acc + d.percentage, 0) / districtRegistrationChartData.length)
+                  : 0
+              }%
+            </span>
+          </div>
+        </div>
+
+        {/* الرسم البياني بالأعمدة لإدارات المديرية */}
+        <div className="h-80 w-full pt-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={districtRegistrationChartData}
+              margin={{ top: 20, right: 10, left: -10, bottom: 50 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+              <XAxis 
+                dataKey="shortName" 
+                angle={-35} 
+                textAnchor="end" 
+                interval={0} 
+                height={50}
+                tick={{ fontSize: 11, fill: '#334155', fontWeight: 600 }} 
+              />
+              <YAxis domain={[0, 13]} ticks={[0, 3, 6, 9, 12, 13]} tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
+              <Tooltip
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div className="bg-slate-900 text-white p-3 rounded-xl shadow-xl border border-slate-700 text-xs space-y-1.5 min-w-[200px] text-right">
+                        <div className="font-bold text-amber-300 pb-1 border-b border-slate-800">
+                          {data.fullName}
+                        </div>
+                        <div className="flex justify-between items-center text-slate-300">
+                          <span>الأقسام المستوفاة:</span>
+                          <span className="font-mono font-black text-emerald-400 text-sm">
+                            {data.completedSections} من 13 قسم
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-slate-300">
+                          <span>نسبة الاستيفاء:</span>
+                          <span className="font-mono font-black text-amber-400">
+                            {data.percentage}%
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-slate-300">
+                          <span>حالة البيان:</span>
+                          <span className="font-bold text-slate-200">
+                            {data.status === 'APPROVED' ? 'معتمد بالمديرية' :
+                             data.status === 'SUBMITTED_LOCKED' ? 'مرفوع بانتظار الفحص' :
+                             data.status === 'RETURNED' ? 'مُرتجع للتصحيح' : 'مسودة'}
+                          </span>
+                        </div>
+                        <div className="pt-1 border-t border-slate-800 text-[10px]">
+                          {data.isComplete ? (
+                            <span className="text-emerald-400 font-bold">✓ مستوفاة بالكامل وجاهزة للاعتماد</span>
+                          ) : (
+                            <span className="text-amber-400 font-bold">متبقي {13 - data.completedSections} أقسام قيد الاستكمال</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Legend 
+                verticalAlign="top" 
+                align="left"
+                wrapperStyle={{ fontSize: '11px', paddingBottom: '12px' }} 
+              />
+              <Bar 
+                dataKey="completedSections" 
+                name="عدد الأقسام المستوفاة (من 13)" 
+                radius={[4, 4, 0, 0]}
+              >
+                {districtRegistrationChartData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={entry.completedSections === 13 ? '#10b981' : entry.completedSections >= 7 ? '#f59e0b' : '#6366f1'} 
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
       {/* 3. جراف المقارنة البينية (Multi-Line Benchmarking Trend) وموقف الاعتماد */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
@@ -376,7 +547,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
             <div>
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                 <TrendingUp className="w-4 h-4 text-[#087f78]" />
-                <span>جراف المقارنة البينية (Multi-Line Benchmarking Trend) للإدارات</span>
+                <span>جراف المقارنة البينية لتطور أداء الإدارات</span>
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
                 مقارنة تطور أداء إدارات المحافظة خلال الأسابيع الأربعة الأخيرة لرصد فجوات الأداء والتحسن
@@ -394,7 +565,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
                 <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#64748b' }} />
                 <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
                 <Tooltip 
-                  formatter={(val: any) => [`${Number(val).toLocaleString('en-US')} حالة`, 'المنجز']}
+                  formatter={(val: any) => [`${Number(val).toLocaleString('ar-EG')} حالة`, 'المنجز']}
                   contentStyle={{ direction: 'rtl', borderRadius: '8px', fontSize: '11px' }}
                 />
                 <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
@@ -479,7 +650,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
           <div>
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
               <Award className="w-4 h-4 text-amber-500" />
-              <span>ترتيب إدارات المحافظة من حيث تحقيق مستهدفات LARC</span>
+              <span>ترتيب إدارات المحافظة من حيث تحقيق مستهدفات الوسائل طويلة المفعول</span>
             </h3>
             <span className="text-xs text-slate-400">
               ترتيب تنازلي دقيق حسب إنجاز الوسائل مقارنة بالمستهدف المعياري
@@ -495,7 +666,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
                 <th className="p-3">الإدارة الصحية</th>
                 <th className="p-3 text-center">إجمالي المترددات</th>
                 <th className="p-3 text-center">المحولات لـ ت.أ</th>
-                <th className="p-3 text-center">المحقق (LARC)</th>
+                <th className="p-3 text-center">المحقق (طويلة المفعول)</th>
                 <th className="p-3 text-center">المستهدف</th>
                 <th className="p-3 text-center">نسبة الإنجاز</th>
                 <th className="p-3 text-center">معدل التحويل</th>

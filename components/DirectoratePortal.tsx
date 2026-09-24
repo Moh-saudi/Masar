@@ -6,6 +6,7 @@ import { DirectorateReviewView } from './DirectorateReviewView';
 import { DirectorateDashboardView } from './DirectorateDashboardView';
 import { ReportsCenterView } from './ReportsCenterView';
 import { DirectoratePpfpReportView } from './DirectoratePpfpReportView';
+import { DailySubmissionsRegisterView } from './DailySubmissionsRegisterView';
 import {
   Building2,
   FileCheck2,
@@ -16,7 +17,8 @@ import {
   Clock3,
   CheckCircle2,
   RotateCcw,
-  CircleDot
+  CircleDot,
+  Building,
 } from 'lucide-react';
 
 interface DirectoratePortalProps {
@@ -26,7 +28,7 @@ interface DirectoratePortalProps {
   onDataChanged: () => void;
 }
 
-type Tab = 'review' | 'dashboard' | 'ppfp' | 'reports';
+type Tab = 'daily_register' | 'review' | 'dashboard' | 'ppfp' | 'reports';
 
 export const DirectoratePortal: React.FC<DirectoratePortalProps> = ({
   submissions,
@@ -34,7 +36,7 @@ export const DirectoratePortal: React.FC<DirectoratePortalProps> = ({
   timeLock,
   onDataChanged,
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<Tab>('review');
+  const [activeSubTab, setActiveSubTab] = useState<Tab>('daily_register');
 
   const govName = user.governorate_name_ar || 'القاهرة';
   const govSubmissions = submissions.filter(s => s.governorate_name_ar === govName);
@@ -49,6 +51,7 @@ export const DirectoratePortal: React.FC<DirectoratePortalProps> = ({
     icon: React.ReactNode;
     count?: number;
   }> = [
+    { id: 'daily_register', label: 'سجلات اليوم', icon: <Building className="w-4 h-4" /> },
     { id: 'review', label: 'مراجعة واعتماد الإدارات', icon: <FileCheck2 className="w-4 h-4" />, count: pendingReviewCount },
     { id: 'dashboard', label: 'مؤشرات المحافظة', icon: <BarChart3 className="w-4 h-4" /> },
     { id: 'ppfp', label: 'مستشفيات الولادة والـ PPFP', icon: <Baby className="w-4 h-4" /> },
@@ -56,6 +59,7 @@ export const DirectoratePortal: React.FC<DirectoratePortalProps> = ({
   ];
 
   const pageTitle =
+    activeSubTab === 'daily_register' ? 'سجلات اليوم' :
     activeSubTab === 'review' ? 'مراجعة واعتماد بيانات الإدارات الصحية' :
     activeSubTab === 'dashboard' ? 'مؤشرات الأداء على مستوى المحافظة' :
     activeSubTab === 'ppfp' ? 'تقرير مستشفيات الولادة والـ PPFP' :
@@ -163,6 +167,15 @@ export const DirectoratePortal: React.FC<DirectoratePortalProps> = ({
             </div>
           </div>
         </div>
+
+        {activeSubTab === 'daily_register' && (
+          <DailySubmissionsRegisterView
+            submissions={submissions}
+            timeLock={timeLock}
+            user={user}
+            onRefreshData={onDataChanged}
+          />
+        )}
 
         {activeSubTab === 'review' && (
           <DirectorateReviewView

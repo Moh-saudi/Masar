@@ -22,11 +22,14 @@ import {
   X,
   TableProperties,
   Sigma,
+  CalendarDays,
 } from 'lucide-react';
+import { CalendarReportsView } from './CalendarReportsView';
 
 interface ReportsCenterViewProps {
   submissions: DailySubmission[];
   user: UserProfile;
+  onOpenSubmission?: (submission: DailySubmission) => void;
 }
 
 type PeriodPreset = 'today' | 'yesterday' | 'last7' | 'last30' | 'custom';
@@ -46,13 +49,14 @@ function reportTitle(user: UserProfile) {
   return 'مركز التقارير والرقابة';
 }
 
-export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submissions, user }) => {
+export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submissions, user, onOpenSubmission }) => {
   const today = getCairoDateString();
   const isDistrict = user.role === 'district_user';
   const isDirectorate = user.role === 'directorate_user';
   const canChooseGovernorate = !isDistrict && !isDirectorate;
   const canChooseDistrict = !isDistrict;
 
+  const [reportMode, setReportMode] = useState<'table' | 'calendar'>('table');
   const [preset, setPreset] = useState<PeriodPreset>('today');
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
@@ -61,7 +65,7 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [remoteRows, setRemoteRows] = useState<DailySubmission[] | null>(null);
-  const [resultCount, setResultCount] = useState(submissions.length);
+  const [resultCount, setResultCount] = useState(() => submissions.filter(s => s.submission_date === today).length);
   const [serverPage, setServerPage] = useState(1);
   const [serverTotalPages, setServerTotalPages] = useState(1);
   const [loadingRange, setLoadingRange] = useState(false);
@@ -110,13 +114,38 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
     const term = searchTerm.trim().toLowerCase();
 
     return normalizedSubmissions.filter(sub => {
+      // 1. فلترة النطاق الزمني (من وإلى)
+      if (fromDate && sub.submission_date < fromDate) return false;
+      if (toDate && sub.submission_date > toDate) return false;
+
+      // 2. فلترة الحالة
+      if (selectedStatus !== 'all' && sub.status !== selectedStatus) return false;
+
+      // 3. فلترة المحافظة
+      if (selectedGov !== 'all') {
+        const govObj = SAMPLE_GOVERNORATES.find(g => g.code === selectedGov);
+        if (govObj && sub.governorate_name_ar !== govObj.name_ar) return false;
+      }
+
+      // 4. فلترة الإدارة الصحية
+      if (selectedDistrict !== 'all' && sub.district_name_ar !== selectedDistrict) return false;
+
+      // 5. فلترة البحث السريع
       if (term) {
-        const searchable = `${sub.governorate_name_ar} ${sub.district_name_ar}`.toLowerCase();
+        const searchable = `${sub.governorate_name_ar} ${sub.district_name_ar} ${sub.submission_date}`.toLowerCase();
         if (!searchable.includes(term)) return false;
       }
       return true;
     });
-  }, [normalizedSubmissions, searchTerm]);
+  }, [
+    normalizedSubmissions,
+    searchTerm,
+    fromDate,
+    toDate,
+    selectedStatus,
+    selectedGov,
+    selectedDistrict,
+  ]);
 
   const totals = useMemo(() => {
     let attendees = 0;
@@ -328,32 +357,43 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
 
   const applyPreset = (value: PeriodPreset) => {
     setPreset(value);
+    let from = today;
+    let to = today;
 
     if (value === 'today') {
-      setFromDate(today);
-      setToDate(today);
+      from = today;
+      to = today;
     } else if (value === 'yesterday') {
-      const date = shiftedDate(-1);
-      setFromDate(date);
-      setToDate(date);
+      from = shiftedDate(-1);
+      to = shiftedDate(-1);
     } else if (value === 'last7') {
-      setFromDate(shiftedDate(-6));
-      setToDate(today);
+      from = shiftedDate(-6);
+      to = today;
     } else if (value === 'last30') {
-      setFromDate(shiftedDate(-29));
-      setToDate(today);
+      from = shiftedDate(-29);
+      to = today;
+    }
+
+    setFromDate(from);
+    setToDate(to);
+
+    if (value !== 'custom') {
+      void loadRange(1, from, to);
     }
   };
 
-  const loadRange = async (page = 1) => {
+  const loadRange = async (page = 1, overrideFrom?: string, overrideTo?: string) => {
     setRangeError('');
 
-    if (!fromDate || !toDate) {
+    const targetFrom = overrideFrom ?? fromDate;
+    const targetTo = overrideTo ?? toDate;
+
+    if (!targetFrom || !targetTo) {
       setRangeError('حدد تاريخ البداية والنهاية.');
       return;
     }
 
-    if (fromDate > toDate) {
+    if (targetFrom > targetTo) {
       setRangeError('تاريخ البداية يجب أن يسبق تاريخ النهاية.');
       return;
     }
@@ -398,8 +438,8 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
       : undefined;
 
     const isPlainTodayView =
-      fromDate === today &&
-      toDate === today &&
+      targetFrom === today &&
+      targetTo === today &&
       selectedStatus === 'all' &&
       page === 1 &&
       (isDistrict || selectedDistrict === 'all') &&
@@ -407,7 +447,7 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
 
     if (isPlainTodayView) {
       setRemoteRows(null);
-      setResultCount(submissions.length);
+      setResultCount(submissions.filter(s => s.submission_date === today).length);
       setServerPage(1);
       setServerTotalPages(1);
       setPeriodAnalytics(null);
@@ -419,8 +459,8 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
 
     try {
       const result = await fetchReportPeriodBundle({
-        fromDate,
-        toDate,
+        fromDate: targetFrom,
+        toDate: targetTo,
         page,
         pageSize: 50,
         governorateId,
@@ -452,7 +492,7 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
     setSelectedStatus('all');
     setSearchTerm('');
     setRemoteRows(null);
-    setResultCount(submissions.length);
+    setResultCount(submissions.filter(s => s.submission_date === today).length);
     setServerPage(1);
     setServerTotalPages(1);
     setRangeError('');
@@ -471,7 +511,7 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
                 {reportTitle(user)}
               </h2>
               <span className="px-2 py-0.5 rounded-md bg-[#eef9f7] text-[#087f78] text-[8px] font-extrabold">
-                {resultCount} سجل
+                {remoteRows !== null ? resultCount : filteredSubmissions.length} سجل
               </span>
             </div>
             <p className="text-[9px] text-slate-500 mt-1">
@@ -479,7 +519,34 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
             </p>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center bg-[#f2f5f8] border border-[#e1e7ed] rounded-xl p-1 text-[10px] font-extrabold">
+              <button
+                type="button"
+                onClick={() => setReportMode('table')}
+                className={`h-7 px-3 rounded-lg transition flex items-center gap-1.5 ${
+                  reportMode === 'table'
+                    ? 'bg-white text-[#087f78] shadow-xs ring-1 ring-[#dce6eb]'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <TableProperties className="w-3.5 h-3.5" />
+                <span>كشف السجلات</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setReportMode('calendar')}
+                className={`h-7 px-3 rounded-lg transition flex items-center gap-1.5 ${
+                  reportMode === 'calendar'
+                    ? 'bg-white text-[#087f78] shadow-xs ring-1 ring-[#dce6eb]'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <CalendarDays className="w-3.5 h-3.5" />
+                <span>تقويم التسجيل اليومي</span>
+              </button>
+            </div>
+
             <button
               onClick={() => window.print()}
               className="h-8 px-2.5 rounded-lg gov-btn-secondary text-[9px] font-extrabold flex items-center gap-1.5"
@@ -511,7 +578,8 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
           </div>
         </div>
 
-        <div className="pt-3 space-y-3">
+        {reportMode === 'table' && (
+          <div className="pt-3 space-y-3">
           <div className="flex items-center gap-2 flex-wrap">
             <CalendarRange className="w-4 h-4 text-[#087f78]" />
             {[
@@ -659,9 +727,14 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
             </div>
           )}
         </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
+      {reportMode === 'calendar' ? (
+        <CalendarReportsView submissions={sourceSubmissions} user={user} onOpenSubmission={onOpenSubmission} />
+      ) : (
+        <>
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
         {[
           {
             label: isDistrict ? 'السجلات الظاهرة' : 'الجهات الظاهرة',
@@ -735,6 +808,8 @@ export const ReportsCenterView: React.FC<ReportsCenterViewProps> = ({ submission
         title="السجلات اليومية"
         description="الأحمر للسجلات المتأخرة، والأصفر لطلبات الفتح، والأزرق للفتح الاستثنائي النشط."
       />
+        </>
+      )}
 
 
       {periodView && (

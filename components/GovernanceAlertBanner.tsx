@@ -41,7 +41,7 @@ export const GovernanceAlertBanner: React.FC<GovernanceAlertBannerProps> = ({
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-rose-900">
-                  إشعار إرجاع البيان للتعديل — {currentSubmission.district_name_ar}
+                  إشعار إرجاع البيان للتعديل — {currentSubmission.district_name_ar} (بيان يوم {currentSubmission.submission_date})
                 </span>
                 <span className="text-[10px] px-2 py-0.2 rounded-full font-bold bg-rose-200 text-rose-800">
                   مُرجع للتعديل

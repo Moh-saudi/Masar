@@ -16,8 +16,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ar" dir="rtl">
-      <body className="min-h-screen bg-slate-50 text-slate-900 font-arabic antialiased selection:bg-sky-600 selection:text-white">
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
+      <body suppressHydrationWarning className="min-h-screen bg-slate-50 text-slate-900 font-arabic antialiased selection:bg-sky-600 selection:text-white">
         <AuthProvider>
           {children}
         </AuthProvider>

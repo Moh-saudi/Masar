@@ -249,15 +249,21 @@ export async function fetchReportPeriodBundle(
 }
 
 export async function fetchDailySubmissions(
-  date = getCairoDateString()
+  date?: string
 ): Promise<DailySubmission[]> {
   const supabase = createBrowserClient()
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('daily_submissions')
     .select(SUBMISSION_LIST_COLUMNS)
-    .eq('submission_date', date)
+    .order('submission_date', { ascending: false })
     .order('updated_at', { ascending: false })
+
+  if (date && date !== 'all') {
+    query = query.eq('submission_date', date)
+  }
+
+  const { data, error } = await query
 
   if (error) throw error
   return (data ?? []).map(hydrateListRow)
@@ -273,7 +279,7 @@ export async function fetchSubmissionDetails(id: string): Promise<DailySubmissio
     .single()
 
   if (error) throw error
-  return data as DailySubmission
+  return data as unknown as DailySubmission
 }
 
 export async function persistDailySubmission(
@@ -291,7 +297,7 @@ export async function persistDailySubmission(
     .single()
 
   if (error) throw error
-  return data as DailySubmission
+  return data as unknown as DailySubmission
 }
 
 export async function grantDirectorateOverride(
@@ -317,7 +323,7 @@ export async function grantDirectorateOverride(
     .single()
 
   if (error) throw error
-  return data as DailySubmission
+  return data as unknown as DailySubmission
 }
 
 export async function returnDirectorateSubmission(
@@ -345,7 +351,7 @@ export async function returnDirectorateSubmission(
     .single()
 
   if (error) throw error
-  return data as DailySubmission
+  return data as unknown as DailySubmission
 }
 
 export async function approveDirectorateSubmission(
@@ -366,7 +372,7 @@ export async function approveDirectorateSubmission(
     .single()
 
   if (error) throw error
-  return data as DailySubmission
+  return data as unknown as DailySubmission
 }
 
 export async function writeAuditEvent(input: {
@@ -409,7 +415,7 @@ export async function approveNationalReport(user: UserProfile) {
     metadata: {
       actor_name: user.full_name,
       actor_role: user.role_title_ar,
-      description: 'الاعتماد الوزاري القومي الشامل للتقرير اليومي لكافة محافظات الجمهورية',
+      description: 'الاعتماد النهائي القومي الشامل للتقرير اليومي لكافة محافظات الجمهورية',
       submission_date: today,
       approved_count: data?.length ?? 0,
     },

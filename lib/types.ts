@@ -3,7 +3,7 @@ export type UserRole =
   | 'directorate_user'   // مديرية الشئون الصحية (تدقيق واعتماد)
   | 'general_director'   // ديوان عام الوزارة - مدير عام تنمية الأسرة
   | 'central_admin'      // ديوان عام الوزارة - رئيس الإدارة المركزية
-  | 'sector_head'        // رئيس القطاع والوزير (اعتماد سيادي وفتح عام)
+  | 'sector_head'        // رئيس القطاع والوزير (اعتماد نهائي وفتح عام)
   | 'super_admin';       // مسؤول النظام العام وتكنولوجيا المعلومات
 
 export type SubmissionStatus = 
@@ -17,6 +17,7 @@ export interface HealthDistrict {
   code: string;
   name_ar: string;
   governorate_id: string;
+  director_name_ar?: string;
 }
 
 export type FacilityType = 
@@ -39,12 +40,22 @@ export interface HealthFacility {
   has_ppfp_service: boolean;
   has_counseling_room: boolean;
   status: 'ACTIVE' | 'INACTIVE';
+  director_name_ar?: string;
+}
+
+export interface CentralAdministration {
+  id: string;
+  code: string;
+  name_ar: string;
+  sector_name_ar: string;
+  head_name_ar: string;
 }
 
 export interface GeneralDirectorate {
   id: string;
   code: string;
   name_ar: string;
+  central_admin_id?: string;
   central_admin_name_ar: string;
   sector_name_ar: string;
   head_name_ar: string;
@@ -63,6 +74,7 @@ export interface UserProfile {
   full_name: string;
   national_id?: string;
   email?: string;
+  avatar_url?: string | null;
   role: UserRole;
   role_title_ar: string;
   governorate_id?: string;
@@ -132,7 +144,9 @@ export interface DailySubmission {
 
 export interface TimeLockState {
   current_time_str: string;
-  is_district_locked: boolean; // True after 03:00 PM
+  is_district_locked: boolean; // True before 09:00 AM or after 03:00 PM
+  is_district_before_open?: boolean; // True before 09:00 AM
+  district_open_time?: string; // "09:00"
   is_directorate_locked: boolean; // True after 06:00 PM
   is_ministry_locked: boolean; // True after 10:00 PM
   district_deadline: string; // "15:00"

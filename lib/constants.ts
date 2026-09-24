@@ -1,4 +1,5 @@
 import { SectionDefinition, Governorate, UserProfile } from './types';
+import { OFFICIAL_GOVERNORATES } from './official-facilities-data';
 
 export const SYSTEM_NAME = 'مَسَار';
 export const SYSTEM_FULL_NAME = 'المنظومة الرقمية لتجميع وتحليل بيانات تنمية الأسرة';
@@ -152,58 +153,7 @@ export const SECTIONS_DEFINITIONS: SectionDefinition[] = [
   },
 ];
 
-export const SAMPLE_GOVERNORATES: Governorate[] = [
-  {
-    id: 'gov-cairo',
-    code: '01',
-    name_ar: 'القاهرة',
-    districts: [
-      { id: 'dist-cairo-nasr-city', code: '0101', name_ar: 'إدارة مدينة نصر الطبية', governorate_id: 'gov-cairo' },
-      { id: 'dist-cairo-helwan', code: '0102', name_ar: 'إدارة حلوان الطبية', governorate_id: 'gov-cairo' },
-      { id: 'dist-cairo-maadi', code: '0103', name_ar: 'إدارة المعادي الطبية', governorate_id: 'gov-cairo' },
-      { id: 'dist-cairo-shubra', code: '0104', name_ar: 'إدارة شبرا الطبية', governorate_id: 'gov-cairo' },
-    ],
-  },
-  {
-    id: 'gov-giza',
-    code: '02',
-    name_ar: 'الجيزة',
-    districts: [
-      { id: 'dist-giza-dokki', code: '0201', name_ar: 'إدارة الدقي والعجوزة الطبية', governorate_id: 'gov-giza' },
-      { id: 'dist-giza-october', code: '0202', name_ar: 'إدارة 6 أكتوبر الطبية', governorate_id: 'gov-giza' },
-      { id: 'dist-giza-omraneya', code: '0203', name_ar: 'إدارة العمرانية الطبية', governorate_id: 'gov-giza' },
-    ],
-  },
-  {
-    id: 'gov-alex',
-    code: '03',
-    name_ar: 'الإسكندرية',
-    districts: [
-      { id: 'dist-alex-montaza', code: '0301', name_ar: 'إدارة المنتزه الطبية', governorate_id: 'gov-alex' },
-      { id: 'dist-alex-east', code: '0302', name_ar: 'إدارة شرق الطبية', governorate_id: 'gov-alex' },
-      { id: 'dist-alex-wasat', code: '0303', name_ar: 'إدارة وسط الطبية', governorate_id: 'gov-alex' },
-    ],
-  },
-  {
-    id: 'gov-asyut',
-    code: '25',
-    name_ar: 'أسيوط',
-    districts: [
-      { id: 'dist-asyut-sharq', code: '2501', name_ar: 'إدارة أسيوط شرق الطبية', governorate_id: 'gov-asyut' },
-      { id: 'dist-asyut-manfalut', code: '2502', name_ar: 'إدارة منفلوط الطبية', governorate_id: 'gov-asyut' },
-      { id: 'dist-asyut-qusiya', code: '2503', name_ar: 'إدارة القوصية الطبية', governorate_id: 'gov-asyut' },
-    ],
-  },
-  {
-    id: 'gov-qalyubia',
-    code: '14',
-    name_ar: 'القليوبية',
-    districts: [
-      { id: 'dist-qal-benha', code: '1401', name_ar: 'إدارة بنها الطبية', governorate_id: 'gov-qalyubia' },
-      { id: 'dist-qal-shubra', code: '1402', name_ar: 'إدارة شبرا الخيمة الطبية', governorate_id: 'gov-qalyubia' },
-    ],
-  },
-];
+export const SAMPLE_GOVERNORATES: Governorate[] = OFFICIAL_GOVERNORATES;
 
 export const DEMO_PROFILES: Record<string, UserProfile> = {
   district: {

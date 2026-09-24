@@ -22,7 +22,8 @@ import {
   MessageSquareText,
   RefreshCw,
   ClipboardCheck,
-  Clock3
+  Clock3,
+  AlertCircle
 } from 'lucide-react';
 
 interface DistrictEntryViewProps {
@@ -60,9 +61,29 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
   const [operationError, setOperationError] = useState<{ title: string; message: string } | null>(null);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
-  const isLocked =
-    (timeLock.is_district_locked || submission.status === 'SUBMITTED_LOCKED') &&
-    !timeLock.has_active_override;
+  const isReturned = submission.status === 'RETURNED';
+  const hasActiveOverride = Boolean(
+    submission.override_active && 
+    submission.override_expires_at && 
+    new Date(submission.override_expires_at).getTime() > Date.now()
+  );
+
+  // البيان المرجع للتعديل بقرار المديرية مفتوح دائماً وفوراً للتعديل دون أي قفل
+  // الاستثناء الساري يفتح التعديل فوراً
+  // بيان المسودة يتيح التعديل والحفظ كمسودة في أي وقت
+  // يقفل فقط إذا كان معتمداً (APPROVED) أو مرسلاً للمراجعة (SUBMITTED_LOCKED) بدون استثناء ساري
+  const isLocked = !isReturned && (
+    submission.status === 'APPROVED' || 
+    (submission.status === 'SUBMITTED_LOCKED' && !hasActiveOverride)
+  );
+
+  const isBeforeOpeningHours = Boolean(
+    timeLock.is_district_before_open && 
+    submission.status === 'DRAFT' && 
+    !hasActiveOverride && 
+    !isReturned
+  );
+  const isSubmittedLocked = Boolean(submission.status === 'SUBMITTED_LOCKED' && !hasActiveOverride && !isReturned);
 
   const activeDefinition =
     SECTIONS_DEFINITIONS.find(def => def.code === activeSectionCode) ??
@@ -77,6 +98,21 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
     () => Object.values(submission.sections).filter(sec => sec.status === 'completed').length,
     [submission.sections]
   );
+
+  const emptySectionNames = useMemo(() => {
+    return SECTIONS_DEFINITIONS.filter(def => {
+      if (mode === 'matrix') {
+        const row = matrixValues[def.code];
+        return !row || ((row.f1 || 0) === 0 && (row.f2 || 0) === 0 && (row.f3 || 0) === 0);
+      } else {
+        if (def.code === activeSectionCode) {
+          return (Number(f1) || 0) === 0 && (Number(f2) || 0) === 0 && (Number(f3) || 0) === 0;
+        }
+        const sec = submission.sections[def.code];
+        return !sec || ((sec.field_1_value || 0) === 0 && (sec.field_2_value || 0) === 0 && (sec.field_3_value || 0) === 0);
+      }
+    }).map(def => def.name_ar);
+  }, [mode, matrixValues, activeSectionCode, f1, f2, f3, submission.sections]);
 
   useEffect(() => {
     const section = submission.sections[activeSectionCode];
@@ -102,7 +138,7 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
 
   const showStatus = (message: string) => {
     setStatusMessage(message);
-    window.setTimeout(() => setStatusMessage(null), 2600);
+    window.setTimeout(() => setStatusMessage(null), 3000);
   };
 
   const handleSaveCurrentSection = async () => {
@@ -119,12 +155,18 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
           field_3_value: Number(f3) || 0,
           notes: notes.trim(),
         },
-        user
+        user,
+        submission.id
       );
 
       const persisted = await persistDailySubmission(updated, user);
       onSubmissionUpdated(persisted);
-      showStatus('تم حفظ بيانات القسم بنجاح');
+      const isZeroOnly = (Number(f1) || 0) === 0 && (Number(f2) || 0) === 0 && (Number(f3) || 0) === 0;
+      showStatus(
+        isZeroOnly
+          ? 'تم حفظ القسم كمسودة عمل (قيم صفرية - غير مكتمل)'
+          : 'تم حفظ بيانات القسم كمسودة عمل بنجاح'
+      );
       return persisted;
     } catch {
       setOperationError({
@@ -160,11 +202,12 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
       const updated = MasarService.updateAllSectionsBulk(
         submission.district_id,
         payload,
-        user
+        user,
+        submission.id
       );
       const persisted = await persistDailySubmission(updated, user);
       onSubmissionUpdated(persisted);
-      showStatus('تم حفظ جميع الأقسام');
+      showStatus('تم حفظ جميع الأقسام كمسودة عمل بنجاح');
       return persisted;
     } catch {
       setOperationError({
@@ -175,6 +218,7 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
       setIsSaving(false);
     }
   };
+
 
   const handleSubmitReport = async () => {
     if (isLocked || isSaving) return;
@@ -198,7 +242,7 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
           };
         });
 
-        MasarService.updateAllSectionsBulk(submission.district_id, payload, user);
+        MasarService.updateAllSectionsBulk(submission.district_id, payload, user, submission.id);
       } else {
         MasarService.updateSectionData(
           submission.district_id,
@@ -209,11 +253,12 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
             field_3_value: Number(f3) || 0,
             notes: notes.trim(),
           },
-          user
+          user,
+          submission.id
         );
       }
 
-      const submitted = MasarService.submitDistrictDailyReport(submission.district_id, user);
+      const submitted = MasarService.submitDistrictDailyReport(submission.district_id, user, submission.id);
       const persisted = await persistDailySubmission(submitted, user);
 
       await writeAuditEvent({
@@ -241,13 +286,25 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
     }
   };
 
-  const moveSection = (direction: 'next' | 'prev') => {
+  const moveSection = async (direction: 'next' | 'prev') => {
+    if (!isLocked) {
+      await handleSaveCurrentSection();
+    }
     const currentIndex = SECTIONS_DEFINITIONS.findIndex(def => def.code === activeSectionCode);
     const targetIndex = direction === 'next'
       ? Math.min(SECTIONS_DEFINITIONS.length - 1, currentIndex + 1)
       : Math.max(0, currentIndex - 1);
 
     const target = SECTIONS_DEFINITIONS[targetIndex];
+    setActiveSectionCode(target.code);
+    setActiveGroup(target.group_id);
+  };
+
+  const switchSection = async (targetCode: number) => {
+    if (!isLocked && targetCode !== activeSectionCode) {
+      await handleSaveCurrentSection();
+    }
+    const target = SECTIONS_DEFINITIONS.find(def => def.code === targetCode) ?? SECTIONS_DEFINITIONS[0];
     setActiveSectionCode(target.code);
     setActiveGroup(target.group_id);
   };
@@ -295,27 +352,89 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
           {isLocked ? (
             <button
               onClick={onRequestOverride}
-              className="h-10 px-4 rounded-xl bg-[#fff7e8] border border-[#f0d39b] text-[#93600d] text-[11px] font-extrabold flex items-center gap-2"
+              className="h-10 px-4 rounded-xl bg-[#fff7e8] border border-[#f0d39b] text-[#93600d] text-[11px] font-extrabold flex items-center gap-2 cursor-pointer shadow-xs"
             >
               <Lock className="w-4 h-4" />
-              طلب فتح للتعديل
+              <span>طلب فتح للتعديل</span>
             </button>
           ) : (
-            <button
-              onClick={mode === 'guided' ? handleSaveCurrentSection : handleSaveMatrix}
-              disabled={isSaving}
-              className="h-10 px-4 rounded-xl gov-btn-primary text-[11px] font-extrabold flex items-center gap-2 disabled:opacity-60"
-            >
-              {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              حفظ البيانات
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={mode === 'guided' ? handleSaveCurrentSection : handleSaveMatrix}
+                disabled={isSaving}
+                className="h-10 px-4 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-[11px] font-extrabold flex items-center gap-2 disabled:opacity-60 shadow-xs cursor-pointer"
+                title="حفظ البيانات كمسودة عمل دون إرسالها للمديرية"
+              >
+                {isSaving ? <RefreshCw className="w-4 h-4 animate-spin text-amber-600" /> : <Save className="w-4 h-4 text-amber-600" />}
+                <span>حفظ كمسودة</span>
+              </button>
+
+              <button
+                onClick={() => setShowSubmitConfirm(true)}
+                disabled={isSaving}
+                className="h-10 px-4 rounded-xl gov-btn-primary text-[11px] font-extrabold flex items-center gap-2 disabled:opacity-60 shadow-xs cursor-pointer"
+                title="إرسال البيان رسمياً إلى مديرية الشئون الصحية للمراجعة والاعتماد"
+              >
+                <Send className="w-4 h-4" />
+                <span>إرسال للمديرية</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
 
+      {/* تنبيه البيان المرجع للتعديل */}
+      {isReturned && (
+        <div className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3.5 text-xs text-rose-950 flex items-start gap-3 shadow-xs">
+          <AlertCircle className="w-5 h-5 text-rose-600 mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <p className="font-black text-sm text-rose-900">
+                بيان يوم ({submission.submission_date}) مفتوح حالياً للتعديل والاستكمال بناءً على قرار الإرجاع من المديرية
+              </p>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-200 text-rose-900">
+                مُرجع للتعديل
+              </span>
+            </div>
+            <p className="text-[11px] text-rose-800 mt-1.5 font-mono bg-white/90 p-2.5 rounded-lg border border-rose-200 leading-relaxed font-bold">
+              سبب وملاحظات المديرية: "{submission.returned_reason || 'يرجى مراجعة وتدقيق الحقول واستكمالها'}"
+            </p>
+            <p className="text-[10px] text-rose-700 mt-1.5 font-bold">
+              كافة حقول هذا البيان مفتوحة للتعديل الآن. يمكنك حفظ التعديلات كمسودة، ثم الضغط على «إرسال للمديرية» لإعادة تقديمه.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* تنبيه نافذة فتح الإدخال (09:00 ص) */}
+      {isBeforeOpeningHours && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3.5 text-xs text-amber-900 flex items-start gap-3 shadow-xs">
+          <Clock3 className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-black text-sm">نافذة تسجيل البيانات تبدأ في تمام الساعة 09:00 صباحاً</p>
+            <p className="text-[11px] text-amber-800 mt-1 leading-relaxed">
+              وفقاً لقواعد التشغيل والحوكمة المعتمدة، تبدأ الإدارة الصحية تسجيل وتعديل البيانات التجميعية من الساعة 09:00 ص وحتى 03:00 م. الحقول مقفلة مؤقتاً حتى موعد الفتح الرسمي.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* تنبيه البيان المرسل والمقفل */}
+      {isSubmittedLocked && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-900 flex items-start gap-3 shadow-xs">
+          <CheckCircle2 className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-black">تم إرسال هذا البيان بنجاح إلى مديرية الشئون الصحية</p>
+            <p className="text-[11px] text-blue-800 mt-1">
+              البيان مقفل حالياً للمراجعة والاعتماد لدى المديرية. إذا كنت بحاجة لإجراء تعديل طارئ، يمكنك تقديم طلب فتح استثنائي مؤقت.
+            </p>
+          </div>
+        </div>
+      )}
+
       {statusMessage && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 px-4 py-3 flex items-center gap-2 text-[11px] font-bold">
-          <CheckCircle2 className="w-4 h-4" />
+          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           {statusMessage}
         </div>
       )}
@@ -361,7 +480,7 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
                   return (
                     <button
                       key={def.code}
-                      onClick={() => setActiveSectionCode(def.code)}
+                      onClick={() => switchSection(def.code)}
                       className={`w-full px-2.5 py-2 rounded-lg flex items-center gap-2 text-[10px] text-right transition ${activeSectionCode === def.code ? 'bg-[#f0f8f7] text-[#066963] font-extrabold' : 'text-slate-600 hover:bg-slate-50'}`}
                     >
                       {complete
@@ -406,7 +525,7 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
             </div>
 
             <div className="p-5 sm:p-6 space-y-5">
-              {isLocked && (
+              {isLocked && !isReturned && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[11px] text-amber-800 flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <div>
@@ -422,7 +541,7 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
                   { label: activeDefinition.field_2_label, value: f2, setter: setF2 },
                   { label: activeDefinition.field_3_label, value: f3, setter: setF3 },
                 ].map((field, index) => (
-                  <label key={index} className="block">
+                  <div key={index} className="block">
                     <span className="block text-[11px] font-extrabold text-slate-700 mb-2">{field.label}</span>
                     <input
                       type="number"
@@ -433,9 +552,75 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
                       onChange={e => field.setter(e.target.value)}
                       className="gov-input h-[58px] px-4 text-xl font-extrabold text-center tabular-nums"
                     />
-                  </label>
+
+                    {/* أزرار زيادة ونقصان القيمة بضغطة زر للمساعدة السريعة */}
+                    <div className="flex items-center justify-center gap-1.5 mt-2">
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => {
+                          const cur = Number(field.value) || 0;
+                          field.setter(String(Math.max(0, cur - 5)));
+                        }}
+                        className="h-6 px-2 rounded-md border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 font-mono text-[10px] font-bold transition disabled:opacity-40 cursor-pointer"
+                        title="إنقاص 5"
+                      >
+                        -5
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => {
+                          const cur = Number(field.value) || 0;
+                          field.setter(String(Math.max(0, cur - 1)));
+                        }}
+                        className="h-6 px-2 rounded-md border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 font-mono text-[10px] font-bold transition disabled:opacity-40 cursor-pointer"
+                        title="إنقاص 1"
+                      >
+                        -1
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => {
+                          const cur = Number(field.value) || 0;
+                          field.setter(String(cur + 1));
+                        }}
+                        className="h-6 px-2 rounded-md border border-slate-200 bg-slate-50 hover:bg-slate-100 text-[#087f78] font-mono text-[10px] font-bold transition disabled:opacity-40 cursor-pointer"
+                        title="زيادة 1"
+                      >
+                        +1
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => {
+                          const cur = Number(field.value) || 0;
+                          field.setter(String(cur + 5));
+                        }}
+                        className="h-6 px-2 rounded-md border border-slate-200 bg-slate-50 hover:bg-slate-100 text-[#087f78] font-mono text-[10px] font-bold transition disabled:opacity-40 cursor-pointer"
+                        title="زيادة 5"
+                      >
+                        +5
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
+
+              {/* تنبيهات الاتساق المنطقي والسريري */}
+              {activeSectionCode !== 12 && (Number(f2) || 0) > (Number(f1) || 0) && (Number(f1) || 0) > 0 && (
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center gap-2 font-bold shadow-2xs">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>تنبيه منطقي: عدد التحويلات لتنظيم الأسرة ({Number(f2)}) أكبر من إجمالي المترددات الأساسية ({Number(f1)})</span>
+                </div>
+              )}
+              {activeSectionCode !== 12 && (Number(f3) || 0) > (Number(f2) || 0) && (Number(f2) || 0) > 0 && (
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center gap-2 font-bold shadow-2xs">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>تنبيه منطقي: عدد مستخدمات الوسائل طويلة المدى ({Number(f3)}) أكبر من إجمالي التحويلات ({Number(f2)})</span>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_210px] gap-4">
                 <label className="block">
@@ -484,17 +669,18 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => moveSection('prev')}
-                  disabled={activeSectionCode === 1}
-                  className="h-9 px-3 rounded-lg gov-btn-secondary text-[10px] font-bold flex items-center gap-1.5 disabled:opacity-40"
+                  disabled={activeSectionCode === 1 || isSaving}
+                  className="h-9 px-3 rounded-lg gov-btn-secondary text-[10px] font-bold flex items-center gap-1.5 disabled:opacity-40 cursor-pointer"
                 >
                   <ChevronRight className="w-3.5 h-3.5" />
                   السابق
                 </button>
                 <button
                   onClick={() => moveSection('next')}
-                  disabled={activeSectionCode === 12}
-                  className="h-9 px-3 rounded-lg gov-btn-secondary text-[10px] font-bold flex items-center gap-1.5 disabled:opacity-40"
+                  disabled={activeSectionCode === 12 || isSaving}
+                  className="h-9 px-3 rounded-lg gov-btn-secondary text-[10px] font-bold flex items-center gap-1.5 disabled:opacity-40 cursor-pointer"
                 >
+                  {isSaving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
                   التالي
                   <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
@@ -503,10 +689,10 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
               <button
                 onClick={handleSaveCurrentSection}
                 disabled={isLocked || isSaving}
-                className="h-10 px-5 rounded-xl gov-btn-primary text-[11px] font-extrabold flex items-center justify-center gap-2 disabled:opacity-50"
+                className="h-10 px-5 rounded-xl gov-btn-primary text-[11px] font-extrabold flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer shadow-xs"
               >
                 {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                حفظ القسم الحالي
+                <span>حفظ القسم كمسودة</span>
               </button>
             </div>
           </div>
@@ -521,10 +707,10 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
             <button
               onClick={handleSaveMatrix}
               disabled={isLocked || isSaving}
-              className="h-9 px-4 rounded-xl gov-btn-primary text-[10px] font-extrabold flex items-center gap-2 disabled:opacity-50"
+              className="h-9 px-4 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-[10px] font-extrabold flex items-center gap-2 disabled:opacity-50 shadow-xs cursor-pointer"
             >
-              <Save className="w-3.5 h-3.5" />
-              حفظ الجدول
+              <Save className="w-3.5 h-3.5 text-amber-600" />
+              حفظ الجدول كمسودة
             </button>
           </div>
 
@@ -632,22 +818,49 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={() => setShowSubmitConfirm(true)}
-          disabled={isLocked || isSaving}
-          className="min-w-[210px] h-11 px-5 rounded-xl bg-[#18334f] hover:bg-[#122a42] text-white text-[11px] font-extrabold flex items-center justify-center gap-2 transition disabled:opacity-50"
-        >
-          {isLocked ? <Lock className="w-4 h-4" /> : <Send className="w-4 h-4" />}
-          {isLocked ? 'البيان مغلق حاليًا' : 'إرسال البيان للمراجعة'}
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {isLocked ? (
+            <button
+              onClick={onRequestOverride}
+              className="h-11 px-5 rounded-xl bg-[#fff7e8] border border-[#f0d39b] text-[#93600d] text-[11px] font-extrabold flex items-center gap-2 cursor-pointer shadow-xs"
+            >
+              <Lock className="w-4 h-4" />
+              <span>طلب فتح للتعديل</span>
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={mode === 'guided' ? handleSaveCurrentSection : handleSaveMatrix}
+                disabled={isSaving}
+                className="h-11 px-5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-[11px] font-extrabold flex items-center gap-2 transition disabled:opacity-50 shadow-xs cursor-pointer"
+              >
+                {isSaving ? <RefreshCw className="w-4 h-4 animate-spin text-amber-600" /> : <Save className="w-4 h-4 text-amber-600" />}
+                <span>حفظ كمسودة مؤقتة</span>
+              </button>
+
+              <button
+                onClick={() => setShowSubmitConfirm(true)}
+                disabled={isSaving}
+                className="min-w-[190px] h-11 px-5 rounded-xl bg-[#18334f] hover:bg-[#122a42] text-white text-[11px] font-extrabold flex items-center justify-center gap-2 transition disabled:opacity-50 shadow-xs cursor-pointer"
+              >
+                <Send className="w-4 h-4" />
+                <span>إرسال البيان للمديرية</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <ConfirmationDialog
         open={showSubmitConfirm}
-        title="إرسال البيان اليومي"
-        message="سيتم إرسال البيان إلى مديرية الشئون الصحية وإغلاق التعديل لحين المراجعة. هل تريد المتابعة؟"
-        confirmLabel="إرسال البيان"
-        tone="primary"
+        title={emptySectionNames.length > 0 ? 'تأكيد إرسال البيان (يحتوي على أقسام صفرية)' : 'إرسال البيان اليومي'}
+        message={
+          emptySectionNames.length > 0
+            ? `تنبيه: يحتوي البيان على (${emptySectionNames.length}) قسم بقيم صفرية (غير مكتملة):\n• ${emptySectionNames.slice(0, 5).join('\n• ')}${emptySectionNames.length > 5 ? `\n• وغيرها (${emptySectionNames.length - 5}) أقسام أخرى` : ''}\n\nهل تؤكد عدم وجود نشاط فعلي في هذه الأقسام وتريد إرسال البيان رسمياً للمديرية؟`
+            : 'سيتم إرسال البيان إلى مديرية الشئون الصحية واعتماد كافة الأقسام (12 من 12). سيقفل التعديل لحين مراجعة واعتماد المديرية. هل تريد المتابعة؟'
+        }
+        confirmLabel={emptySectionNames.length > 0 ? 'تأكيد وإرسال البيان' : 'إرسال البيان'}
+        tone={emptySectionNames.length > 0 ? 'warning' : 'primary'}
         loading={isSaving}
         onConfirm={async () => {
           setShowSubmitConfirm(false);

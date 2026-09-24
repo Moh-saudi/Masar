@@ -55,28 +55,47 @@ export const DistrictDashboardView: React.FC<DistrictDashboardViewProps> = ({
   const [activeTab, setActiveTab] = useState<'dashboard' | 'reports'>('dashboard');
   const [reportPeriod, setReportPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   
-  // عداد تنازلي لموعد الإغلاق التلقائي (الساعة 03:00 عصراً)
-  const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; isPassed: boolean }>({
+  // عداد تنازلي حوكمي يوضح حالة نافذة الإدخال (09:00 ص - 03:00 م)
+  const [timeLeft, setTimeLeft] = useState<{
+    hours: number;
+    minutes: number;
+    seconds: number;
+    status: 'before_open' | 'open' | 'closed';
+  }>({
     hours: 0,
     minutes: 0,
     seconds: 0,
-    isPassed: false,
+    status: 'closed',
   });
 
   useEffect(() => {
     const updateCountdown = () => {
       const now = new Date();
-      const deadline = new Date();
-      deadline.setHours(15, 0, 0, 0); // 03:00 PM
+      const currentHours = now.getHours();
+      const currentMinutes = now.getMinutes();
+      const decimalTime = currentHours + currentMinutes / 60;
 
-      const diff = deadline.getTime() - now.getTime();
-      if (diff <= 0) {
-        setTimeLeft({ hours: 0, minutes: 0, seconds: 0, isPassed: true });
-      } else {
+      if (decimalTime < 9.0) {
+        // قبل التاسعة صباحاً: عداد تنازلي حتى موعد فتح نافذة العمل
+        const openTime = new Date();
+        openTime.setHours(9, 0, 0, 0);
+        const diff = Math.max(0, openTime.getTime() - now.getTime());
         const hours = Math.floor(diff / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        setTimeLeft({ hours, minutes, seconds, isPassed: false });
+        setTimeLeft({ hours, minutes, seconds, status: 'before_open' });
+      } else if (decimalTime >= 15.0) {
+        // بعد الثالثة عصراً: النافذة مغلقة لانتهاء ساعات العمل
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0, status: 'closed' });
+      } else {
+        // أثناء ساعات العمل الرسمية (09:00 ص - 03:00 م)
+        const deadline = new Date();
+        deadline.setHours(15, 0, 0, 0);
+        const diff = Math.max(0, deadline.getTime() - now.getTime());
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        setTimeLeft({ hours, minutes, seconds, status: 'open' });
       }
     };
 
@@ -210,22 +229,31 @@ export const DistrictDashboardView: React.FC<DistrictDashboardViewProps> = ({
           </p>
         </div>
 
-        {/* عدّاد تنازلي بلون تحذيري يوضح الوقت المتبقي على الإغلاق التلقائي (03:00 عصراً) */}
+        {/* عدّاد تنازلي حوكمي يوضح حالة نافذة الإدخال (09:00 ص - 03:00 م) */}
         <div className={`flex items-center gap-2.5 px-4 py-2 rounded-xl border font-mono ${
-          timeLeft.isPassed 
+          timeLeft.status === 'closed'
             ? 'bg-rose-50 border-rose-200 text-rose-800' 
-            : timeLeft.hours === 0 && timeLeft.minutes < 30
-              ? 'bg-amber-50 border-amber-300 text-amber-900 animate-pulse'
-              : 'bg-[#eef9f7] border-[#ccebe7] text-sky-900'
+            : timeLeft.status === 'before_open'
+              ? 'bg-amber-50 border-amber-300 text-amber-900'
+              : timeLeft.hours === 0 && timeLeft.minutes < 30
+                ? 'bg-amber-50 border-amber-300 text-amber-900 animate-pulse'
+                : 'bg-[#eef9f7] border-[#ccebe7] text-sky-900'
         }`}>
-          <Timer className={`w-4 h-4 ${timeLeft.isPassed ? 'text-rose-600' : 'text-[#087f78]'}`} />
+          <Timer className={`w-4 h-4 ${
+            timeLeft.status === 'closed' ? 'text-rose-600' :
+            timeLeft.status === 'before_open' ? 'text-amber-600' : 'text-[#087f78]'
+          }`} />
           <div className="text-right">
             <div className="text-[10px] font-sans font-bold text-slate-600">
-              {timeLeft.isPassed ? 'نافذة الإدخال لليوم:' : 'الوقت المتبقي للإغلاق التلقائي (03:00 م):'}
+              {timeLeft.status === 'before_open' 
+                ? 'تفتح نافذة الإدخال لليوم (09:00 ص) بعد:' 
+                : timeLeft.status === 'closed'
+                  ? 'نافذة الإدخال لليوم:'
+                  : 'الوقت المتبقي للإغلاق التلقائي (03:00 م):'}
             </div>
             <div className="text-xs font-black">
-              {timeLeft.isPassed ? (
-                <span className="text-rose-700">مغلقة (03:00 م)</span>
+              {timeLeft.status === 'closed' ? (
+                <span className="text-rose-700">مغلقة لليوم (03:00 م)</span>
               ) : (
                 <span>
                   {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}

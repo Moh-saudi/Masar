@@ -7,7 +7,7 @@ export async function requireUser() {
   const user = await getCurrentUser()
 
   if (!user || !user.active) {
-    redirect('/login')
+    redirect('/')
   }
 
   return user
@@ -17,7 +17,7 @@ export async function requireRole(roles: Role[]) {
   const user = await requireUser()
 
   if (!roles.includes(user.role)) {
-    redirect('/unauthorized')
+    redirect('/')
   }
 
   return user
@@ -27,7 +27,7 @@ export async function requirePermission(permission: Permission) {
   const user = await requireUser()
 
   if (!can(user.role, permission)) {
-    redirect('/unauthorized')
+    redirect('/')
   }
 
   return user

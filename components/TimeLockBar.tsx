@@ -58,9 +58,17 @@ export const TimeLockBar: React.FC<TimeLockBarProps> = ({
 
             <span className="hidden sm:block w-px h-4 bg-slate-200" />
 
-            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-extrabold ${locked ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-[#eef9f6] text-[#147d64] border-[#cfece3]'}`}>
+            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-extrabold ${locked ? (timeLock.is_district_before_open ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200') : 'bg-[#eef9f6] text-[#147d64] border-[#cfece3]'}`}>
               {locked ? <LockKeyhole className="w-3.5 h-3.5" /> : <UnlockKeyhole className="w-3.5 h-3.5" />}
-              <span>{locked ? 'انتهت نافذة الإدخال' : `الإدخال متاح حتى ${timeLock.district_deadline}`}</span>
+              <span>
+                {timeLock.has_active_override
+                  ? 'نافذة مفتوحة باستثناء مؤقت'
+                  : timeLock.is_district_before_open
+                    ? 'نافذة الإدخال تفتح 09:00 ص'
+                    : locked
+                      ? 'انتهت نافذة الإدخال (15:00)'
+                      : `الإدخال متاح حتى ${timeLock.district_deadline}`}
+              </span>
             </div>
 
             {timeLock.has_active_override && (

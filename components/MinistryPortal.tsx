@@ -6,18 +6,18 @@ import { NationalDashboardView } from './NationalDashboardView';
 import { ExceptionsMonitorView } from './ExceptionsMonitorView';
 import { ReportsCenterView } from './ReportsCenterView';
 import { OfficialReportModal } from './OfficialReportModal';
-import { OrganizationHierarchyView } from './OrganizationHierarchyView';
+import { DailySubmissionsRegisterView } from './DailySubmissionsRegisterView';
 import {
   Landmark,
   LayoutDashboard,
   ShieldAlert,
   FileSpreadsheet,
   Printer,
-  Network,
   CheckCircle2,
   RotateCcw,
   Clock3,
-  Map
+  Map,
+  Building
 } from 'lucide-react';
 
 interface MinistryPortalProps {
@@ -27,7 +27,7 @@ interface MinistryPortalProps {
   onDataChanged: () => void;
 }
 
-type Tab = 'national' | 'exceptions' | 'hierarchy' | 'reports';
+type Tab = 'national' | 'daily_register' | 'exceptions' | 'reports';
 
 export const MinistryPortal: React.FC<MinistryPortalProps> = ({
   submissions,
@@ -48,16 +48,22 @@ export const MinistryPortal: React.FC<MinistryPortalProps> = ({
 
   const navItems: Array<{ id: Tab; label: string; icon: React.ReactNode; count?: number }> = [
     { id: 'national', label: 'اللوحة القومية', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { id: 'daily_register', label: 'سجلات اليوم', icon: <Building className="w-4 h-4" /> },
     { id: 'exceptions', label: 'الاستثناءات والرصد', icon: <ShieldAlert className="w-4 h-4" />, count: totalExceptionsCount },
-    { id: 'hierarchy', label: 'الهيكل التنظيمي', icon: <Network className="w-4 h-4" /> },
     { id: 'reports', label: 'التقارير والتصدير', icon: <FileSpreadsheet className="w-4 h-4" /> },
   ];
 
   const pageTitle =
     activeSubTab === 'national' ? 'المتابعة القومية لبيانات تنمية الأسرة' :
+    activeSubTab === 'daily_register' ? 'سجلات اليوم' :
     activeSubTab === 'exceptions' ? 'غرفة الاستثناءات والرصد المركزي' :
-    activeSubTab === 'hierarchy' ? 'الهيكل التنظيمي والمنشآت' :
     'مركز التقارير القومية';
+
+  const pageSubtitle =
+    activeSubTab === 'national' ? 'متابعة الموقف القومي، مؤشرات المحافظات، الاستثناءات، والتقارير المعتمدة على مستوى الجمهورية.' :
+    activeSubTab === 'daily_register' ? 'متابعة الموقف التنفيذي وموقف تسجيل كافة الإدارات الصحية (+300 إدارة) على مستوى محافظات الجمهورية لحظة بلحظة.' :
+    activeSubTab === 'exceptions' ? 'متابعة وفحص طلبات التمديد والاستثناءات وملاحظات التصحيح والتأخير.' :
+    'استعراض وتصدير وطباعة التقارير القومية والموقف الإحصائي.';
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[280px_minmax(0,1fr)] gap-5 items-start">
@@ -100,7 +106,7 @@ export const MinistryPortal: React.FC<MinistryPortalProps> = ({
               className="w-full h-10 rounded-xl gov-btn-secondary text-[10px] font-extrabold flex items-center justify-center gap-2"
             >
               <Printer className="w-4 h-4 text-[#087f78]" />
-              التقرير الوزاري الرسمي
+              التقرير النهائي الرسمي
             </button>
           </div>
         </div>
@@ -142,7 +148,7 @@ export const MinistryPortal: React.FC<MinistryPortalProps> = ({
               </div>
               <h1 className="text-lg sm:text-xl font-extrabold text-[#172033]">{pageTitle}</h1>
               <p className="text-[11px] sm:text-xs text-slate-500 mt-1.5 leading-6">
-                متابعة الموقف القومي، مؤشرات المحافظات، الاستثناءات، والتقارير المعتمدة على مستوى الجمهورية.
+                {pageSubtitle}
               </p>
             </div>
 
@@ -182,12 +188,17 @@ export const MinistryPortal: React.FC<MinistryPortalProps> = ({
           />
         )}
 
-        {activeSubTab === 'exceptions' && (
-          <ExceptionsMonitorView submissions={submissions} timeLock={timeLock} user={user} />
+        {activeSubTab === 'daily_register' && (
+          <DailySubmissionsRegisterView
+            submissions={submissions}
+            timeLock={timeLock}
+            user={user}
+            onRefreshData={onDataChanged}
+          />
         )}
 
-        {activeSubTab === 'hierarchy' && (
-          <OrganizationHierarchyView user={user} />
+        {activeSubTab === 'exceptions' && (
+          <ExceptionsMonitorView submissions={submissions} timeLock={timeLock} user={user} />
         )}
 
         {activeSubTab === 'reports' && (
