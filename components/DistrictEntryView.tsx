@@ -61,7 +61,8 @@ export const DistrictEntryView: React.FC<DistrictEntryViewProps> = ({
   const [operationError, setOperationError] = useState<{ title: string; message: string } | null>(null);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
-  const isReturned = submission.status === 'RETURNED';
+  const isReturned =
+    submission.status === 'RETURNED' || submission.directorate_status === 'RETURNED';
   const hasActiveOverride = Boolean(
     submission.override_active && 
     submission.override_expires_at && 
