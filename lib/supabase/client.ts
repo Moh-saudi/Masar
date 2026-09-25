@@ -6,11 +6,13 @@ export function isSupabaseConfigured() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  return Boolean(
-    url &&
-    anonKey &&
-    url !== 'https://YOUR_PROJECT.supabase.co' &&
-    url !== 'https://your-project.supabase.co'
+  if (!url || !anonKey) return false
+
+  const lowerUrl = url.toLowerCase()
+  return (
+    !lowerUrl.includes('your_project') &&
+    !lowerUrl.includes('your-project') &&
+    !anonKey.includes('YOUR_SUPABASE_ANON_KEY')
   )
 }
 

@@ -6,7 +6,9 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 export const isSupabaseConfigured = Boolean(
   supabaseUrl &&
   supabaseAnonKey &&
-  supabaseUrl !== 'https://your-project.supabase.co'
+  !supabaseUrl.toLowerCase().includes('your_project') &&
+  !supabaseUrl.toLowerCase().includes('your-project') &&
+  !supabaseAnonKey.includes('YOUR_SUPABASE_ANON_KEY')
 )
 
 /**
