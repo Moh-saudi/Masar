@@ -164,7 +164,25 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
   let returnedCount = 0;
   let draftCount = 0;
 
-  const districtComparisonData = govSubmissions.map((sub, idx) => {
+  // إزالة التكرار: الاحتفاظ فقط بأحدث سجل لكل إدارة (district_name_ar أو district_id)
+  const uniqueDistrictMap = new Map<string, typeof govSubmissions[0]>();
+  govSubmissions.forEach(sub => {
+    const key = sub.district_id || sub.district_name_ar;
+    const existing = uniqueDistrictMap.get(key);
+    if (!existing) {
+      uniqueDistrictMap.set(key, sub);
+    } else {
+      // الأحدث تحديثاً يكسب
+      const existingDate = existing.updated_at || existing.created_at || '';
+      const newDate = sub.updated_at || sub.created_at || '';
+      if (newDate > existingDate) {
+        uniqueDistrictMap.set(key, sub);
+      }
+    }
+  });
+  const uniqueGovSubmissions = Array.from(uniqueDistrictMap.values());
+
+  const districtComparisonData = uniqueGovSubmissions.map((sub) => {
     let subAttendees = 0;
     let subReferrals = 0;
     let subLarc = 0;
@@ -213,6 +231,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
 
   // ترتيب الإدارات تنازلياً حسب تحقيق المستهدف
   const rankedDistricts = [...districtComparisonData].sort((a, b) => b.larc - a.larc);
+
 
   const govOverallConvRate = govTotalAttendees > 0 
     ? Math.round((govTotalReferrals / govTotalAttendees) * 100) 
@@ -406,10 +425,10 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="text-2xl font-black font-mono text-slate-900">
-            {approvedCount}/{govSubmissions.length}
+            {approvedCount}/{uniqueGovSubmissions.length}
           </div>
           <span className="text-[11px] text-emerald-600 font-bold mt-1 block">
-            نسبة الاعتماد: {govSubmissions.length > 0 ? Math.round((approvedCount / govSubmissions.length) * 100) : 0}%
+            نسبة الاعتماد: {uniqueGovSubmissions.length > 0 ? Math.round((approvedCount / uniqueGovSubmissions.length) * 100) : 0}%
           </span>
         </div>
 

@@ -253,6 +253,37 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
   }, [fetchedSubmissions, submissions, selectedGovFilter]);
 
   // حساب موقف التسجيل للمحافظات الـ 27 (بيانات حقيقية فعلية 100%)
+  // اختصارات لأسماء المحافظات الطويلة لتحسين العرض في محور السيني
+  const GOV_SHORT_NAMES: Record<string, string> = {
+    'الإسكندرية': 'الإسكندرية',
+    'القاهرة': 'القاهرة',
+    'الجيزة': 'الجيزة',
+    'الدقهلية': 'الدقهلية',
+    'الشرقية': 'الشرقية',
+    'القليوبية': 'القليوبية',
+    'كفر الشيخ': 'كفر الشيخ',
+    'الغربية': 'الغربية',
+    'المنوفية': 'المنوفية',
+    'البحيرة': 'البحيرة',
+    'الإسماعيلية': 'الإسماعيلية',
+    'دمياط': 'دمياط',
+    'بورسعيد': 'بورسعيد',
+    'السويس': 'السويس',
+    'الفيوم': 'الفيوم',
+    'بني سويف': 'بني سويف',
+    'المنيا': 'المنيا',
+    'أسيوط': 'أسيوط',
+    'سوهاج': 'سوهاج',
+    'قنا': 'قنا',
+    'أسوان': 'أسوان',
+    'الأقصر': 'الأقصر',
+    'البحر الأحمر': 'البحر الأحمر',
+    'الوادي الجديد': 'الوادي الجديد',
+    'مطروح': 'مطروح',
+    'شمال سيناء': 'شمال سيناء',
+    'جنوب سيناء': 'جنوب سيناء',
+  };
+
   const governorateChartData = useMemo(() => {
     const realCountByGov = new Map<string, number>();
     activeSubmissions.forEach(sub => {
@@ -261,22 +292,33 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
       }
     });
 
-    return currentGovernoratesList.map(gov => {
-      const total = gov.districts?.length || 0;
-      const realCount = realCountByGov.get(gov.name_ar) || 0;
-      const registered = realCount; // بيانات فعلية فقط دون أي أرقام افتراضية
-      const percentage = total > 0 ? Math.round((registered / total) * 100) : 0;
+    // ضمان عدم تكرار المحافظات باستخدام الـ code كمفتاح فريد
+    const seenCodes = new Set<string>();
+    return currentGovernoratesList
+      .filter(gov => {
+        if (seenCodes.has(gov.code)) return false;
+        seenCodes.add(gov.code);
+        return true;
+      })
+      .map(gov => {
+        const total = gov.districts?.length || 0;
+        const realCount = realCountByGov.get(gov.name_ar) || 0;
+        const registered = realCount;
+        const percentage = total > 0 ? Math.round((registered / total) * 100) : 0;
+        // اسم مختصر للعرض في المحور السيني، والاسم الكامل للـ tooltip
+        const displayName = GOV_SHORT_NAMES[gov.name_ar] || gov.name_ar;
 
-      return {
-        name: gov.name_ar,
-        code: gov.code,
-        totalDistricts: total,
-        registeredDistricts: registered,
-        remainingDistricts: Math.max(0, total - registered),
-        percentage,
-        isComplete: registered === total && total > 0,
-      };
-    });
+        return {
+          name: displayName,
+          fullName: gov.name_ar,
+          code: gov.code,
+          totalDistricts: total,
+          registeredDistricts: registered,
+          remainingDistricts: Math.max(0, total - registered),
+          percentage,
+          isComplete: registered === total && total > 0,
+        };
+      });
   }, [currentGovernoratesList, activeSubmissions]);
 
   // إجماليات الجمهورية
@@ -988,7 +1030,7 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
             </div>
 
             {/* رسم بياني بالأعمدة للمحافظات الـ 27 */}
-            <div className="h-[430px] w-full pt-2">
+            <div className="h-[460px] w-full pt-2">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={
@@ -998,30 +1040,35 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
                         ? governorateChartData.filter(g => !g.isComplete)
                         : governorateChartData
                   }
-                  margin={{ top: 25, right: 30, left: 10, bottom: 95 }}
+                  margin={{ top: 28, right: 20, left: 10, bottom: 110 }}
+                  barCategoryGap="20%"
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis 
-                    dataKey="name" 
-                    interval={0} 
-                    height={95}
-                    tick={({ x, y, payload }) => (
-                      <g transform={`translate(${x},${y})`}>
-                        <text
-                          x={0}
-                          y={0}
-                          dx={-4}
-                          dy={14}
-                          textAnchor="end"
-                          fill="#0f172a"
-                          fontSize={11}
-                          fontWeight={700}
-                          transform="rotate(-55)"
-                        >
-                          {payload.value}
-                        </text>
-                      </g>
-                    )}
+                  <XAxis
+                    dataKey="name"
+                    interval={0}
+                    height={110}
+                    tick={({ x, y, payload }) => {
+                      const label: string = payload.value as string;
+                      return (
+                        <g transform={`translate(${x},${y})`}>
+                          <text
+                            x={0}
+                            y={0}
+                            dx={-3}
+                            dy={12}
+                            textAnchor="end"
+                            fill="#1e293b"
+                            fontSize={10.5}
+                            fontWeight={700}
+                            transform="rotate(-45)"
+                            style={{ fontFamily: 'inherit' }}
+                          >
+                            {label}
+                          </text>
+                        </g>
+                      );
+                    }}
                   />
                   <YAxis tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
                   <Tooltip
@@ -1029,9 +1076,9 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
                       if (active && payload && payload.length) {
                         const data = payload[0].payload;
                         return (
-                          <div className="bg-slate-900 text-white p-3 rounded-xl shadow-xl border border-slate-700 text-xs space-y-1.5 min-w-[200px] text-right">
+                          <div className="bg-slate-900 text-white p-3 rounded-xl shadow-xl border border-slate-700 text-xs space-y-1.5 min-w-[220px] text-right">
                             <div className="font-bold text-amber-300 pb-1 border-b border-slate-800">
-                              محافظة {data.name}
+                              محافظة {data.fullName || data.name}
                             </div>
                             <div className="flex justify-between items-center text-slate-300">
                               <span>الإدارات المسجلة لليوم:</span>
@@ -1046,7 +1093,7 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
                               </span>
                             </div>
                             <div className="flex justify-between items-center text-slate-300">
-                              <span>نسبة التغطية المكتملة:</span>
+                              <span>نسبة التغطية:</span>
                               <span className="font-mono font-black text-amber-400">
                                 {data.percentage}%
                               </span>
@@ -1064,29 +1111,31 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
                       return null;
                     }}
                   />
-                  <Legend 
-                    verticalAlign="top" 
+                  <Legend
+                    verticalAlign="top"
                     align="left"
-                    wrapperStyle={{ fontSize: '11px', paddingBottom: '12px' }} 
+                    wrapperStyle={{ fontSize: '11px', paddingBottom: '12px' }}
                   />
-                  <Bar 
-                    dataKey="registeredDistricts" 
-                    name="عدد الإدارات المسجلة للبيانات" 
-                    fill="#087f78" 
-                    radius={[4, 4, 0, 0]} 
+                  <Bar
+                    dataKey="registeredDistricts"
+                    name="عدد الإدارات المسجلة للبيانات"
+                    fill="#087f78"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={28}
                   >
-                    <LabelList 
-                      dataKey="registeredDistricts" 
-                      position="top" 
-                      formatter={(val: any) => (val > 0 ? val : '')} 
-                      style={{ fontSize: '10px', fontWeight: 'bold', fill: '#087f78' }} 
+                    <LabelList
+                      dataKey="registeredDistricts"
+                      position="top"
+                      formatter={(val: any) => (val > 0 ? val : '')}
+                      style={{ fontSize: '10px', fontWeight: 'bold', fill: '#087f78' }}
                     />
                   </Bar>
-                  <Bar 
-                    dataKey="totalDistricts" 
-                    name="إجمالي الإدارات التابعة للمحافظة" 
-                    fill="#cbd5e1" 
-                    radius={[4, 4, 0, 0]} 
+                  <Bar
+                    dataKey="totalDistricts"
+                    name="إجمالي الإدارات التابعة للمحافظة"
+                    fill="#cbd5e1"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={28}
                   />
                 </BarChart>
               </ResponsiveContainer>
