@@ -481,7 +481,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={districtRegistrationChartData}
-              margin={{ top: 20, right: 10, left: -10, bottom: 50 }}
+              margin={{ top: 20, right: 10, left: -10, bottom: 65 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis 
@@ -489,7 +489,9 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
                 angle={-35} 
                 textAnchor="end" 
                 interval={0} 
-                height={50}
+                height={60}
+                tickMargin={12}
+                dy={8}
                 tick={{ fontSize: 11, fill: '#334155', fontWeight: 600 }} 
               />
               <YAxis domain={[0, 13]} ticks={[0, 3, 6, 9, 12, 13]} tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />

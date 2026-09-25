@@ -1031,7 +1031,7 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
 
             {/* رسم بياني بالأعمدة للمحافظات الـ 27 — قابل للتمرير الأفقي */}
             <div className="w-full overflow-x-auto pt-2" style={{ scrollbarWidth: 'thin' }}>
-              <div style={{ minWidth: '1400px', height: '460px' }}>
+              <div style={{ minWidth: '1400px', height: '490px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={
@@ -1041,18 +1041,19 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
                           ? governorateChartData.filter(g => !g.isComplete)
                           : governorateChartData
                     }
-                    margin={{ top: 28, right: 30, left: 10, bottom: 90 }}
+                    margin={{ top: 28, right: 30, left: 10, bottom: 120 }}
                     barCategoryGap="25%"
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                     <XAxis
                       dataKey="name"
                       interval={0}
-                      height={100}
+                      height={110}
+                      tickMargin={25}
                       tick={{ fontSize: 12, fontWeight: 700, fill: '#1e293b' }}
                       angle={-40}
                       textAnchor="end"
-                      dy={5}
+                      dy={15}
                     />
                     <YAxis tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
                     <Tooltip
