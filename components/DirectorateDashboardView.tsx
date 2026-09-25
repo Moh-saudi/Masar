@@ -390,7 +390,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
             <Users className="w-4 h-4 text-[#087f78]" />
           </div>
           <div className="text-2xl font-black font-mono text-slate-900">
-            {govTotalAttendees.toLocaleString('ar-EG')}
+            {govTotalAttendees.toLocaleString('en-US')}
           </div>
           <span className="text-[11px] text-slate-400 mt-1 block">في كافة الإدارات الصحية</span>
         </div>
@@ -401,7 +401,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
             <Share2 className="w-4 h-4 text-indigo-600" />
           </div>
           <div className="text-2xl font-black font-mono text-indigo-700">
-            {govTotalReferrals.toLocaleString('ar-EG')}
+            {govTotalReferrals.toLocaleString('en-US')}
           </div>
           <span className="text-[11px] text-indigo-600 font-bold font-mono mt-1 block">
             معدل تحويل: {govOverallConvRate}%
@@ -414,7 +414,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="text-2xl font-black font-mono text-emerald-700">
-            {govTotalLarc.toLocaleString('ar-EG')}
+            {govTotalLarc.toLocaleString('en-US')}
           </div>
           <span className="text-[11px] text-slate-400 mt-1 block">حالة حماية طويلة المدى</span>
         </div>
@@ -584,7 +584,7 @@ export const DirectorateDashboardView: React.FC<DirectorateDashboardViewProps> =
                 <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#64748b' }} />
                 <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
                 <Tooltip 
-                  formatter={(val: any) => [`${Number(val).toLocaleString('ar-EG')} حالة`, 'المنجز']}
+                  formatter={(val: any) => [`${Number(val).toLocaleString('en-US')} حالة`, 'المنجز']}
                   contentStyle={{ direction: 'rtl', borderRadius: '8px', fontSize: '11px' }}
                 />
                 <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />

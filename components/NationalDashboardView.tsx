@@ -914,13 +914,13 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
                 <div className="p-2 rounded-lg bg-white/70 border border-slate-200">
                   <span className="text-[10px] text-slate-500 block">المترددات بالجمهورية:</span>
                   <span className="font-mono font-black text-slate-900 text-sm">
-                    {totalAttendees.toLocaleString('ar-EG')}
+                    {totalAttendees.toLocaleString('en-US')}
                   </span>
                 </div>
                 <div className="p-2 rounded-lg bg-white/70 border border-slate-200">
                   <span className="text-[10px] text-slate-500 block">الوسائل طويلة المفعول:</span>
                   <span className="font-mono font-black text-indigo-700 text-sm">
-                    {totalLarcAll.toLocaleString('ar-EG')}
+                    {totalLarcAll.toLocaleString('en-US')}
                   </span>
                 </div>
               </div>
@@ -1152,13 +1152,13 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
 
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
               <div className="text-xs text-slate-500 font-semibold mb-1">المترددات بالجمهورية لليوم</div>
-              <div className="text-3xl font-black font-mono text-slate-900">{totalAttendees.toLocaleString('ar-EG')}</div>
+              <div className="text-3xl font-black font-mono text-slate-900">{totalAttendees.toLocaleString('en-US')}</div>
               <div className="text-[11px] text-slate-400 mt-1">عبر {totalRepublicRegisteredToday} إدارة صحية بـ 27 محافظة</div>
             </div>
 
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
               <div className="text-xs text-slate-500 font-semibold mb-1">الوسائل طويلة المفعول لليوم</div>
-              <div className="text-3xl font-black font-mono text-indigo-700">{totalLarcAll.toLocaleString('ar-EG')}</div>
+              <div className="text-3xl font-black font-mono text-indigo-700">{totalLarcAll.toLocaleString('en-US')}</div>
               <div className="text-[11px] text-indigo-600 mt-1 font-bold">الحصيلة الفعلية المنصرفة للمنتفعات</div>
             </div>
 
@@ -1191,7 +1191,7 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
                     <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
                     <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
                     <Tooltip 
-                      formatter={(val: any) => [`${Number(val).toLocaleString('ar-EG')} حالة`, 'العدد']}
+                      formatter={(val: any) => [`${Number(val).toLocaleString('en-US')} حالة`, 'العدد']}
                       contentStyle={{ direction: 'rtl', borderRadius: '8px', fontSize: '11px' }}
                     />
                     <Legend wrapperStyle={{ fontSize: '11px' }} />
