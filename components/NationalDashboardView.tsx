@@ -1048,28 +1048,11 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
                     <XAxis
                       dataKey="name"
                       interval={0}
-                      height={90}
-                      tick={({ x, y, payload }) => {
-                        const label: string = payload.value as string;
-                        return (
-                          <g transform={`translate(${x},${y})`}>
-                            <text
-                              x={0}
-                              y={0}
-                              dx={-4}
-                              dy={10}
-                              textAnchor="end"
-                              fill="#1e293b"
-                              fontSize={12}
-                              fontWeight={700}
-                              transform="rotate(-40)"
-                              style={{ fontFamily: 'inherit' }}
-                            >
-                              {label}
-                            </text>
-                          </g>
-                        );
-                      }}
+                      height={100}
+                      tick={{ fontSize: 12, fontWeight: 700, fill: '#1e293b' }}
+                      angle={-40}
+                      textAnchor="end"
+                      dy={5}
                     />
                     <YAxis tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
                     <Tooltip
