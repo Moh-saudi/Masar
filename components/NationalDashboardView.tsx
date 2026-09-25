@@ -1029,117 +1029,120 @@ export const NationalDashboardView: React.FC<NationalDashboardViewProps> = ({
               </div>
             </div>
 
-            {/* رسم بياني بالأعمدة للمحافظات الـ 27 */}
-            <div className="h-[460px] w-full pt-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={
-                    govChartFilter === 'completed'
-                      ? governorateChartData.filter(g => g.isComplete)
-                      : govChartFilter === 'in_progress'
-                        ? governorateChartData.filter(g => !g.isComplete)
-                        : governorateChartData
-                  }
-                  margin={{ top: 28, right: 20, left: 10, bottom: 110 }}
-                  barCategoryGap="20%"
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis
-                    dataKey="name"
-                    interval={0}
-                    height={110}
-                    tick={({ x, y, payload }) => {
-                      const label: string = payload.value as string;
-                      return (
-                        <g transform={`translate(${x},${y})`}>
-                          <text
-                            x={0}
-                            y={0}
-                            dx={-3}
-                            dy={12}
-                            textAnchor="end"
-                            fill="#1e293b"
-                            fontSize={10.5}
-                            fontWeight={700}
-                            transform="rotate(-45)"
-                            style={{ fontFamily: 'inherit' }}
-                          >
-                            {label}
-                          </text>
-                        </g>
-                      );
-                    }}
-                  />
-                  <YAxis tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        const data = payload[0].payload;
-                        return (
-                          <div className="bg-slate-900 text-white p-3 rounded-xl shadow-xl border border-slate-700 text-xs space-y-1.5 min-w-[220px] text-right">
-                            <div className="font-bold text-amber-300 pb-1 border-b border-slate-800">
-                              محافظة {data.fullName || data.name}
-                            </div>
-                            <div className="flex justify-between items-center text-slate-300">
-                              <span>الإدارات المسجلة لليوم:</span>
-                              <span className="font-mono font-black text-emerald-400 text-sm">
-                                {data.registeredDistricts} إدارة
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center text-slate-300">
-                              <span>إجمالي إدارات المحافظة:</span>
-                              <span className="font-mono font-bold text-slate-200">
-                                {data.totalDistricts} إدارة
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center text-slate-300">
-                              <span>نسبة التغطية:</span>
-                              <span className="font-mono font-black text-amber-400">
-                                {data.percentage}%
-                              </span>
-                            </div>
-                            <div className="pt-1 border-t border-slate-800 text-[10px]">
-                              {data.isComplete ? (
-                                <span className="text-emerald-400 font-bold">✓ كافة إدارات المحافظة استكملت التسجيل</span>
-                              ) : (
-                                <span className="text-amber-400 font-bold">متبقي {data.remainingDistricts} إدارة قيد الاستيفاء</span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Legend
-                    verticalAlign="top"
-                    align="left"
-                    wrapperStyle={{ fontSize: '11px', paddingBottom: '12px' }}
-                  />
-                  <Bar
-                    dataKey="registeredDistricts"
-                    name="عدد الإدارات المسجلة للبيانات"
-                    fill="#087f78"
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={28}
+            {/* رسم بياني بالأعمدة للمحافظات الـ 27 — قابل للتمرير الأفقي */}
+            <div className="w-full overflow-x-auto pt-2" style={{ scrollbarWidth: 'thin' }}>
+              <div style={{ minWidth: '1400px', height: '460px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={
+                      govChartFilter === 'completed'
+                        ? governorateChartData.filter(g => g.isComplete)
+                        : govChartFilter === 'in_progress'
+                          ? governorateChartData.filter(g => !g.isComplete)
+                          : governorateChartData
+                    }
+                    margin={{ top: 28, right: 30, left: 10, bottom: 90 }}
+                    barCategoryGap="25%"
                   >
-                    <LabelList
-                      dataKey="registeredDistricts"
-                      position="top"
-                      formatter={(val: any) => (val > 0 ? val : '')}
-                      style={{ fontSize: '10px', fontWeight: 'bold', fill: '#087f78' }}
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <XAxis
+                      dataKey="name"
+                      interval={0}
+                      height={90}
+                      tick={({ x, y, payload }) => {
+                        const label: string = payload.value as string;
+                        return (
+                          <g transform={`translate(${x},${y})`}>
+                            <text
+                              x={0}
+                              y={0}
+                              dx={-4}
+                              dy={10}
+                              textAnchor="end"
+                              fill="#1e293b"
+                              fontSize={12}
+                              fontWeight={700}
+                              transform="rotate(-40)"
+                              style={{ fontFamily: 'inherit' }}
+                            >
+                              {label}
+                            </text>
+                          </g>
+                        );
+                      }}
                     />
-                  </Bar>
-                  <Bar
-                    dataKey="totalDistricts"
-                    name="إجمالي الإدارات التابعة للمحافظة"
-                    fill="#cbd5e1"
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={28}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+                    <YAxis tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="bg-slate-900 text-white p-3 rounded-xl shadow-xl border border-slate-700 text-xs space-y-1.5 min-w-[220px] text-right">
+                              <div className="font-bold text-amber-300 pb-1 border-b border-slate-800">
+                                محافظة {data.fullName || data.name}
+                              </div>
+                              <div className="flex justify-between items-center text-slate-300">
+                                <span>الإدارات المسجلة لليوم:</span>
+                                <span className="font-mono font-black text-emerald-400 text-sm">
+                                  {data.registeredDistricts} إدارة
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center text-slate-300">
+                                <span>إجمالي إدارات المحافظة:</span>
+                                <span className="font-mono font-bold text-slate-200">
+                                  {data.totalDistricts} إدارة
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center text-slate-300">
+                                <span>نسبة التغطية:</span>
+                                <span className="font-mono font-black text-amber-400">
+                                  {data.percentage}%
+                                </span>
+                              </div>
+                              <div className="pt-1 border-t border-slate-800 text-[10px]">
+                                {data.isComplete ? (
+                                  <span className="text-emerald-400 font-bold">✓ كافة إدارات المحافظة استكملت التسجيل</span>
+                                ) : (
+                                  <span className="text-amber-400 font-bold">متبقي {data.remainingDistricts} إدارة قيد الاستيفاء</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Legend
+                      verticalAlign="top"
+                      align="left"
+                      wrapperStyle={{ fontSize: '11px', paddingBottom: '12px' }}
+                    />
+                    <Bar
+                      dataKey="registeredDistricts"
+                      name="عدد الإدارات المسجلة للبيانات"
+                      fill="#087f78"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={32}
+                    >
+                      <LabelList
+                        dataKey="registeredDistricts"
+                        position="top"
+                        formatter={(val: any) => (val > 0 ? val : '')}
+                        style={{ fontSize: '11px', fontWeight: 'bold', fill: '#087f78' }}
+                      />
+                    </Bar>
+                    <Bar
+                      dataKey="totalDistricts"
+                      name="إجمالي الإدارات التابعة للمحافظة"
+                      fill="#cbd5e1"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={32}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
+
           </div>
 
           {/* 3. بطاقات المؤشرات الاستراتيجية التكميلية */}
